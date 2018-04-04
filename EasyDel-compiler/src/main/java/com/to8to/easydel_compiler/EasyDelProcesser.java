@@ -213,16 +213,16 @@ public class EasyDelProcesser extends AbstractProcessor {
 
             onCreateViewHolder.addStatement("return null");
 
-
-            FieldSpec itemListDataField =  FieldSpec.builder(
-                    //List<ItemData> itemListData
-                    ParameterizedTypeName.get(ArrayList.class,ItemData.class),
-                    itemListDataName,
-                     Modifier.PUBLIC,Modifier.FINAL)
-                    //itemListData = new ArrayList<ItemData>();
-                    .initializer(CodeBlock.of("new $T()", ParameterizedTypeName.get(ArrayList.class,
-                            ItemData.class)))
-                    .build();
+//
+//            FieldSpec itemListDataField =  FieldSpec.builder(
+//                    //List<ItemData> itemListData
+//                    ParameterizedTypeName.get(ArrayList.class,ItemData.class),
+//                    itemListDataName,
+//                     Modifier.PUBLIC,Modifier.FINAL)
+//                    //itemListData = new ArrayList<ItemData>();
+//                    .initializer(CodeBlock.of("new $T()", ParameterizedTypeName.get(ArrayList.class,
+//                            ItemData.class)))
+//                    .build();
             //构成适配器的名字xx$$innerTypeName
             String innerTypeName = adapterName.substring(0, 1).toUpperCase();
             if(adapterName.length()>1)
@@ -238,7 +238,7 @@ public class EasyDelProcesser extends AbstractProcessor {
                 apdater = TypeSpec.classBuilder(element.getEnclosingElement().getSimpleName()+ innerTypeName)
                         .addModifiers(Modifier.PUBLIC)
                         .superclass(ClassName.get(element.asType()))
-                        .addField(itemListDataField)
+                        //.addField(itemListDataField)
                         .addMethod(getItemCount.build())
                         .addMethod(getItemViewType.build())
                         .addMethod(onBindViewHolder.build())
