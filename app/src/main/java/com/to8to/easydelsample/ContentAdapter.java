@@ -18,7 +18,9 @@ public  abstract class ContentAdapter  extends RecyclerView.Adapter{
     }
 
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {}
+    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+
+    }
 
     @Override
     public int getItemCount() {

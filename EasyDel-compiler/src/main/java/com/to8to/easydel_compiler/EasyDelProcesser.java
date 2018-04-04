@@ -158,14 +158,22 @@ public class EasyDelProcesser extends AbstractProcessor {
                             if(temp == 0)
                             {
                                 onCreateViewHolder.beginControlFlow("if($L == viewType)",viewType );
+
+                                onBindViewHolder.beginControlFlow("if (holder instanceof "+holder+" )");
                             }
                             else
                             {
                                 onCreateViewHolder.beginControlFlow("else if($L == viewType)",viewType );
+
+                                onBindViewHolder.beginControlFlow("else if (holder instanceof "+holder+" )");
                             }
-                            onCreateViewHolder.addStatement("return new " +holder+
+                            onCreateViewHolder.addStatement("return new "+holder+
                                     "(android.view.LayoutInflater.from(parent.getContext()).inflate($L, parent, false))", id);
+
+                            onBindViewHolder.addStatement(holder+" tHolder = ("+holder+") holder");
+                            onBindViewHolder.addStatement(" tHolder.update(position, itemListData.get(position))");
                             onCreateViewHolder.endControlFlow();
+                            onBindViewHolder.endControlFlow();
                         }
 
                     }

@@ -13,7 +13,7 @@ import com.to8to.easydel_annotation.Adapter;
                 "com.to8to.easydelsample.ContentHolder3"
         },
         className = "MainAdapter",
-        extend = "com.to8to.easydelsample.ContentAdapter"
+        extend = "android.support.v7.widget.RecyclerView.Adapter"
 )
 
 public class MainAdapterConfig {
