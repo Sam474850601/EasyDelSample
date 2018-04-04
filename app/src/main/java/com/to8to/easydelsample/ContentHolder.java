@@ -6,24 +6,28 @@ import android.view.View;
 import com.to8to.easydel_annotation.Find;
 import com.to8to.easydel_annotation.IHolder;
 import com.to8to.easydel_annotation.ItemData;
-import com.to8to.easydel_annotation.Layout;
+import com.to8to.easydel_annotation.AdapterLayout;
 
 /**
  * Created by same.li on 2018/4/3.
  */
 
-@Layout(id = R.layout.activity_main, viewType =1)
+@AdapterLayout(id = R.layout.activity_main, viewType =1)
 public class ContentHolder extends RecyclerView.ViewHolder implements IHolder{
 
 
     @Find(R.id.test)
-    View view;
+    View v_test;
 
 
 
     public ContentHolder(View itemView) {
         super(itemView);
     }
+
+
+
+
 
     @Override
     public void update(int postion, ItemData itemData) {

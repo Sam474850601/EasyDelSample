@@ -10,16 +10,14 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.to8to.easydel_annotation.Adapter;
+import com.to8to.easydel_annotation.AdapterLayout;
 import com.to8to.easydel_annotation.Find;
-import com.to8to.easydel_annotation.IHolder;
 import com.to8to.easydel_annotation.ItemData;
-import com.to8to.easydel_annotation.Layout;
 import com.to8to.easydel_annotation.LayoutType;
 import com.to8to.easydel_annotation.OnClick;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -61,7 +59,7 @@ public class EasyDelProcesser extends AbstractProcessor {
         Set<String> types = new LinkedHashSet<>();
         types.add(OnClick.class.getCanonicalName());
         types.add(Find.class.getCanonicalName());
-        types.add(Layout.class.getCanonicalName());
+        types.add(AdapterLayout.class.getCanonicalName());
         types.add(LayoutType.class.getCanonicalName());
         types.add(Adapter.class.getCanonicalName());
         return types;
@@ -80,11 +78,25 @@ public class EasyDelProcesser extends AbstractProcessor {
 
         for (Element element : elementsAnnotatedWith) {
             Adapter annotation = element.getAnnotation(Adapter.class);
+            String adapterName  = annotation.className();
+            final String filedClassName = element.getSimpleName().toString();
+             if(null == adapterName|| adapterName.isEmpty())
+             {
+                 adapterName = filedClassName;
+             }
 
-            TypeElement variableElement  = (TypeElement) element;
-            final String adapterName  = annotation.className();
-            final String hostClassName = variableElement.getSimpleName().toString();
+
             String parent = annotation.extend();
+
+             VariableElement typeElement = (VariableElement) element;
+
+
+            if(null == parent|| parent.isEmpty())
+            {
+                parent = ClassName.get(typeElement.asType()).toString();
+            }
+
+            info("parent=%s", parent);
 
             final String itemListDataName = "itemListData";
 
@@ -134,45 +146,64 @@ public class EasyDelProcesser extends AbstractProcessor {
 
 
             String[] holders = annotation.holders();
-           // HashMap<String, Layout> layoutHashMap = new HashMap<>();
+           // HashMap<String, AdapterLayout> layoutHashMap = new HashMap<>();
             int i = 0;
             for (String holder : holders) {
                 final String[] packagAnName = ClassUtil.getPackagAnName(holder);
-                Set<? extends Element> annotatedWith = roundEnv.getElementsAnnotatedWith(Layout.class);
+                Set<? extends Element> annotatedWith = roundEnv.getElementsAnnotatedWith(AdapterLayout.class);
                 final int layoutSize = annotatedWith.size();
                 if(null !=  annotatedWith && layoutSize>0)
                 {
-
                     for (Element layoutElement : annotatedWith) {
-                        i++;
+
                         String layoutHostName = layoutElement.toString();
 
                         if(holder.equals(layoutHostName))
                         {
+                            i++;
                             info("layoutHostName=%s", layoutHostName);
-                            //layoutHashMap.put(holder, layoutElement.getAnnotation(Layout.class));
+                            //layoutHashMap.put(holder, layoutElement.getAnnotation(AdapterLayout.class));
                             final int temp = i -1;
-                            Layout layoutAnn = layoutElement.getAnnotation(Layout.class);
-                            int id = layoutAnn.id();
-                            int viewType = layoutAnn.viewType();
+                            info("temp=%d", temp);
+                            AdapterLayout adapterLayoutAnn = layoutElement.getAnnotation(AdapterLayout.class);
+                            int id = adapterLayoutAnn.id();
+                            int viewType = adapterLayoutAnn.viewType();
                             if(temp == 0)
                             {
                                 onCreateViewHolder.beginControlFlow("if($L == viewType)",viewType );
 
-                                onBindViewHolder.beginControlFlow("if (holder instanceof "+holder+" )");
+                                onBindViewHolder.beginControlFlow("if (holder instanceof $L)", holder);
                             }
                             else
                             {
                                 onCreateViewHolder.beginControlFlow("else if($L == viewType)",viewType );
 
-                                onBindViewHolder.beginControlFlow("else if (holder instanceof "+holder+" )");
+                                onBindViewHolder.beginControlFlow("else if (holder instanceof $L)", holder);
                             }
-                            onCreateViewHolder.addStatement("return new "+holder+
-                                    "(android.view.LayoutInflater.from(parent.getContext()).inflate($L, parent, false))", id);
 
-                            onBindViewHolder.addStatement(holder+" tHolder = ("+holder+") holder");
-                            onBindViewHolder.addStatement(" tHolder.update(position, itemListData.get(position))");
+                            onCreateViewHolder.addStatement("android.view.View layoutView = android.view.LayoutInflater.from(parent.getContext()).inflate($L, parent, false)", id);
+
+                            onCreateViewHolder.addStatement("$L holder =new $L(layoutView)", holder, holder);
+
+                            List<? extends Element> allMembers = mElementUtils.getAllMembers((TypeElement) layoutElement);
+                            if(null != allMembers)
+                            {
+                                for (Element allMember : allMembers) {
+                                    final Find findAnn = allMember.getAnnotation(Find.class);
+                                    if(null != findAnn)
+                                    {
+                                        final int value = findAnn.value();
+                                        final String findFieldName = allMember.getSimpleName().toString();
+                                        onCreateViewHolder.addStatement("holder.$L = layoutView.findViewById($L)",findFieldName
+                                                , value);
+                                    }
+                                }
+                            }
+                            onCreateViewHolder.addStatement("return holder");
                             onCreateViewHolder.endControlFlow();
+
+                            onBindViewHolder.addStatement("$L tHolder = ($L)holder ",holder,holder);
+                            onBindViewHolder.addStatement("tHolder.update(position, itemListData.get(position))");
                             onBindViewHolder.endControlFlow();
                         }
 
@@ -204,10 +235,10 @@ public class EasyDelProcesser extends AbstractProcessor {
             TypeSpec apdater = null;
 
             try {
-                final String[] packagAnName = ClassUtil.getPackagAnName(parent);
-                apdater = TypeSpec.classBuilder(innerTypeName)
+
+                apdater = TypeSpec.classBuilder(element.getEnclosingElement().getSimpleName()+ innerTypeName)
                         .addModifiers(Modifier.PUBLIC)
-                        .superclass(ClassName.get(packagAnName[0], packagAnName[1]))
+                        .superclass(ClassName.get(element.asType()))
                         .addField(itemListDataField)
                         .addMethod(getItemCount.build())
                         .addMethod(getItemViewType.build())
@@ -218,7 +249,7 @@ public class EasyDelProcesser extends AbstractProcessor {
                 info("Exception=%s", e.toString());
             }
             final String packagename =  mElementUtils.getPackageOf(element).getQualifiedName().toString();
-            info("packagename=%s", packagename+".adapter");
+            info("packagename=%s", packagename);
            // JavaFileFixed javaFile = JavaFileFixed.builder(PACKAGE, typeSpec).addType(parent).build();
             JavaFile javaFile = JavaFile.builder(packagename
                     , apdater)

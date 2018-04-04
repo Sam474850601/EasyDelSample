@@ -3,9 +3,14 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/EasyDel/EasyDel.iml" filepath="$PROJECT_DIR$/EasyDel/EasyDel.iml" />
+      <module fileurl="file://$PROJECT_DIR$/EasyDel/EasyDel.iml" filepath="$PROJECT_DIR$/EasyDel/EasyDel.iml" />
+      <module fileurl="file://$PROJECT_DIR$/EasyDel-annotation/EasyDel-annotation.iml" filepath="$PROJECT_DIR$/EasyDel-annotation/EasyDel-annotation.iml" />
       <module fileurl="file://$PROJECT_DIR$/EasyDel-annotation/EasyDel-annotation.iml" filepath="$PROJECT_DIR$/EasyDel-annotation/EasyDel-annotation.iml" />
       <module fileurl="file://$PROJECT_DIR$/EasyDel-compiler/EasyDel-compiler.iml" filepath="$PROJECT_DIR$/EasyDel-compiler/EasyDel-compiler.iml" />
+      <module fileurl="file://$PROJECT_DIR$/EasyDel-compiler/EasyDel-compiler.iml" filepath="$PROJECT_DIR$/EasyDel-compiler/EasyDel-compiler.iml" />
       <module fileurl="file://$PROJECT_DIR$/EasyDelSample.iml" filepath="$PROJECT_DIR$/EasyDelSample.iml" />
+      <module fileurl="file://$PROJECT_DIR$/EasyDelSample.iml" filepath="$PROJECT_DIR$/EasyDelSample.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
   </component>

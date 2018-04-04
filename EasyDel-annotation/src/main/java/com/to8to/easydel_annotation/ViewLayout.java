@@ -6,12 +6,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Created by same.li on 2018/4/2.
+ * Created by Ping on 2018/4/5.
  */
 @Retention(RetentionPolicy.CLASS)
-@Target(ElementType.FIELD)
-public @interface Adapter {
-    String[] holders();
-    String className() default "";
-    String  extend() default "";
+@Target(ElementType.TYPE)
+public @interface ViewLayout{
+    int value();
 }
