@@ -1,6 +1,7 @@
 package com.to8to.easydelsample;
 
 import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
 /**
@@ -12,6 +13,7 @@ public  abstract class ContentAdapter  extends RecyclerView.Adapter{
 
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        LayoutInflater.from(parent.getContext()).inflate(0, parent, false);
         return null;
     }
 

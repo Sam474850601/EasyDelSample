@@ -11,13 +11,11 @@ import com.to8to.easydel_annotation.Layout;
  * Created by same.li on 2018/4/3.
  */
 
-@Layout(id = R.layout.activity_main, viewType =1)
-public class ContentHolder extends RecyclerView.ViewHolder implements IHolder{
+@Layout(id = R.layout.activity_main, viewType = 2)
+public class ContentHolder2 extends RecyclerView.ViewHolder implements IHolder{
 
 
-
-
-    public ContentHolder(View itemView) {
+    public ContentHolder2(View itemView) {
         super(itemView);
     }
 

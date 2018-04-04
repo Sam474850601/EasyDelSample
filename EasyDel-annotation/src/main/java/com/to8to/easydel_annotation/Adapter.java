@@ -9,7 +9,9 @@ import java.lang.annotation.Target;
  * Created by same.li on 2018/4/2.
  */
 @Retention(RetentionPolicy.CLASS)
-@Target(ElementType.FIELD)
+@Target(ElementType.TYPE)
 public @interface Adapter {
-    Class<?extends IHolder>[] value();
+    String[] holders();
+    String className();
+    String  extend();
 }

@@ -12,5 +12,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 @Target(ElementType.TYPE)
 public @interface Layout {
-    int value();
+    int id();
+    int viewType() default 0;
 }

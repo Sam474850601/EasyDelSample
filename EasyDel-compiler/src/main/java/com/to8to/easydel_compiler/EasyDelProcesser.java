@@ -11,6 +11,7 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.to8to.easydel_annotation.Adapter;
 import com.to8to.easydel_annotation.Find;
+import com.to8to.easydel_annotation.IHolder;
 import com.to8to.easydel_annotation.ItemData;
 import com.to8to.easydel_annotation.Layout;
 import com.to8to.easydel_annotation.LayoutType;
@@ -18,6 +19,7 @@ import com.to8to.easydel_annotation.OnClick;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -73,75 +75,143 @@ public class EasyDelProcesser extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnv) {
+
         Set<? extends Element> elementsAnnotatedWith = roundEnv.getElementsAnnotatedWith(Adapter.class);
+
         for (Element element : elementsAnnotatedWith) {
-            VariableElement variableElement  = (VariableElement) element;
-            final  Element hostElemnt =  element.getEnclosingElement();
-            final String simpleClassName = hostElemnt.getSimpleName().toString();
-            final String  className =   ((TypeElement)hostElemnt).getQualifiedName().toString();
-            final String fieldClassName = ClassName.get(element.asType()).toString();
-            final String fieldName = variableElement.getSimpleName().toString();
+            Adapter annotation = element.getAnnotation(Adapter.class);
+
+            TypeElement variableElement  = (TypeElement) element;
+            final String adapterName  = annotation.className();
+            final String hostClassName = variableElement.getSimpleName().toString();
+            String parent = annotation.extend();
 
             final String itemListDataName = "itemListData";
+
+
 
             // public int getItemCount() {return this.itemListData.size();}
             MethodSpec.Builder getItemCount  =  MethodSpec.methodBuilder("getItemCount")
                     .addModifiers(Modifier.PUBLIC)
                     .returns(int.class)
+                    .addAnnotation(Override.class)
                     .addStatement("return itemListData.size()");
+
+            MethodSpec.Builder getItemViewType  =  MethodSpec.methodBuilder("getItemViewType")
+                    .addModifiers(Modifier.PUBLIC)
+                    .addParameter(int.class, "position")
+                    .returns(int.class)
+                    .addAnnotation(Override.class)
+                    .addStatement("return itemListData.get(position).type");
+
 
             //public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {}
             ClassName viewHolderClassName =   ClassName.get(AndroidClass.RecyclerView, AndroidClass.ViewHolder);
             MethodSpec.Builder onBindViewHolder  =
                     MethodSpec.methodBuilder("onBindViewHolder")
                     .addModifiers(Modifier.PUBLIC)
+                            .addAnnotation(Override.class)
                     .addParameter(viewHolderClassName,
                             "holder")
                      .addParameter(int.class,
                                     "position")
-
                     .returns(TypeName.VOID);
+
+
 
             //    @Overridepublic RecyclerView.ViewHolder onCreateViewHolder
             //    (ViewGroup parent, int viewType) {return null;}
-
-
             MethodSpec.Builder onCreateViewHolder  =
                     MethodSpec.methodBuilder("onCreateViewHolder")
                             .addModifiers(Modifier.PUBLIC)
+                            .addAnnotation(Override.class)
                             .addParameter(ClassName.get(AndroidClass.PACKAGE_VIEW,
-                                    "View"),
+                                    "ViewGroup"),
                                     "parent")
                             .addParameter(int.class,
                                     "viewType")
-                            .returns(viewHolderClassName)
-                            .addStatement("return null");
+                            .returns(viewHolderClassName);
+
+
+            String[] holders = annotation.holders();
+           // HashMap<String, Layout> layoutHashMap = new HashMap<>();
+            int i = 0;
+            for (String holder : holders) {
+                final String[] packagAnName = ClassUtil.getPackagAnName(holder);
+                Set<? extends Element> annotatedWith = roundEnv.getElementsAnnotatedWith(Layout.class);
+                final int layoutSize = annotatedWith.size();
+                if(null !=  annotatedWith && layoutSize>0)
+                {
+
+                    for (Element layoutElement : annotatedWith) {
+                        i++;
+                        String layoutHostName = layoutElement.toString();
+
+                        if(holder.equals(layoutHostName))
+                        {
+                            info("layoutHostName=%s", layoutHostName);
+                            //layoutHashMap.put(holder, layoutElement.getAnnotation(Layout.class));
+                            final int temp = i -1;
+                            Layout layoutAnn = layoutElement.getAnnotation(Layout.class);
+                            int id = layoutAnn.id();
+                            int viewType = layoutAnn.viewType();
+                            if(temp == 0)
+                            {
+                                onCreateViewHolder.beginControlFlow("if($L == viewType)",viewType );
+                            }
+                            else
+                            {
+                                onCreateViewHolder.beginControlFlow("else if($L == viewType)",viewType );
+                            }
+                            onCreateViewHolder.addStatement("return new " +holder+
+                                    "(android.view.LayoutInflater.from(parent.getContext()).inflate($L, parent, false))", id);
+                            onCreateViewHolder.endControlFlow();
+                        }
+
+                    }
+                }
+
+            }
+
+            onCreateViewHolder.addStatement("return null");
+
 
             FieldSpec itemListDataField =  FieldSpec.builder(
                     //List<ItemData> itemListData
                     ParameterizedTypeName.get(ArrayList.class,ItemData.class),
                     itemListDataName,
-                     Modifier.PRIVATE,Modifier.FINAL)
+                     Modifier.PUBLIC,Modifier.FINAL)
                     //itemListData = new ArrayList<ItemData>();
                     .initializer(CodeBlock.of("new $T()", ParameterizedTypeName.get(ArrayList.class,
                             ItemData.class)))
                     .build();
             //构成适配器的名字xx$$innerTypeName
-            String innerTypeName = fieldName.substring(0, 1).toUpperCase();
-            if(fieldName.length()>1)
+            String innerTypeName = adapterName.substring(0, 1).toUpperCase();
+            if(adapterName.length()>1)
             {
-                innerTypeName +=fieldName.substring(1, fieldName.length());
+                innerTypeName += adapterName.substring(1, adapterName.length());
             }
-            TypeSpec apdater = TypeSpec.classBuilder(simpleClassName+"$$"+innerTypeName)
-                    .addModifiers(Modifier.PUBLIC)
-                    .superclass(ClassName.get(element.asType()))
-                    .addField(itemListDataField)
-                    .addMethod(getItemCount.build())
-                    .addMethod(onBindViewHolder.build())
-                    .addMethod(onCreateViewHolder.build())
-                    .build();
+            info(" innerTypeName  :%s ",innerTypeName);
+
+            TypeSpec apdater = null;
+
+            try {
+                final String[] packagAnName = ClassUtil.getPackagAnName(parent);
+                apdater = TypeSpec.classBuilder(innerTypeName)
+                        .addModifiers(Modifier.PUBLIC)
+                        .superclass(ClassName.get(packagAnName[0], packagAnName[1]))
+                        .addField(itemListDataField)
+                        .addMethod(getItemCount.build())
+                        .addMethod(getItemViewType.build())
+                        .addMethod(onBindViewHolder.build())
+                        .addMethod(onCreateViewHolder.build())
+                        .build();
+            } catch (Exception e) {
+                info("Exception=%s", e.toString());
+            }
             final String packagename =  mElementUtils.getPackageOf(element).getQualifiedName().toString();
-            info("packagename=%s", packagename);
+            info("packagename=%s", packagename+".adapter");
+           // JavaFileFixed javaFile = JavaFileFixed.builder(PACKAGE, typeSpec).addType(parent).build();
             JavaFile javaFile = JavaFile.builder(packagename
                     , apdater)
                     .build();
@@ -150,11 +220,7 @@ public class EasyDelProcesser extends AbstractProcessor {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            info("variableElement simpleClassName  :%s ",simpleClassName);
-            info("variableElement className  :%s ",className);
-            info("variableElement fieldClassName :%s ", fieldClassName);
-            //field
-            info("variableElement fieldName:%s ", fieldName);
+
         }
         return true;
     }
