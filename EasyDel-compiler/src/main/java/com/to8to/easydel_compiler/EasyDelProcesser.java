@@ -149,7 +149,6 @@ public class EasyDelProcesser extends AbstractProcessor {
            // HashMap<String, AdapterLayout> layoutHashMap = new HashMap<>();
             int i = 0;
             for (String holder : holders) {
-                final String[] packagAnName = ClassUtil.getPackagAnName(holder);
                 Set<? extends Element> annotatedWith = roundEnv.getElementsAnnotatedWith(AdapterLayout.class);
                 final int layoutSize = annotatedWith.size();
                 if(null !=  annotatedWith && layoutSize>0)
@@ -194,8 +193,8 @@ public class EasyDelProcesser extends AbstractProcessor {
                                     {
                                         final int value = findAnn.value();
                                         final String findFieldName = allMember.getSimpleName().toString();
-                                        onCreateViewHolder.addStatement("holder.$L = layoutView.findViewById($L)",findFieldName
-                                                , value);
+                                        onCreateViewHolder.addStatement("holder.$L = ($L)layoutView.findViewById($L)",findFieldName
+                                                , ClassName.get(allMember.asType()).toString(),value);
                                     }
                                 }
                             }
