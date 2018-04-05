@@ -53,10 +53,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        new MainActivity$$ContentAutoCreateAdapter();
-        new MainActivity$$ContentAutoCreateAdapter2();
-        new MainActivity$$CustomAutoCreateAdapter();
-        new MainActivity$$CustomAutoCreateAdapter2();
     }
 
 

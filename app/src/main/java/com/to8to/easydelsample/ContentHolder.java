@@ -14,7 +14,7 @@ import com.to8to.easydel_annotation.AdapterLayout;
  */
 
 @AdapterLayout(id = R.layout.activity_main)
-public class ContentHolder extends RecyclerView.ViewHolder implements IHolder{
+public class ContentHolder extends RecyclerView.ViewHolder implements IHolder<String>{
 
 
     @Find(R.id.test)
@@ -31,7 +31,7 @@ public class ContentHolder extends RecyclerView.ViewHolder implements IHolder{
 
 
     @Override
-    public void update(int postion, ItemData itemData) {
-
+    public void update(int postion, ItemData<String> itemData) {
+        v_test.setText(itemData.data);
     }
 }
