@@ -2,6 +2,7 @@ package com.to8to.easydelsample;
 
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
+import android.widget.TextView;
 
 import com.to8to.easydel_annotation.Find;
 import com.to8to.easydel_annotation.IHolder;
@@ -12,12 +13,12 @@ import com.to8to.easydel_annotation.AdapterLayout;
  * Created by same.li on 2018/4/3.
  */
 
-@AdapterLayout(id = R.layout.activity_main, viewType =1)
+@AdapterLayout(id = R.layout.activity_main)
 public class ContentHolder extends RecyclerView.ViewHolder implements IHolder{
 
 
     @Find(R.id.test)
-    View v_test;
+    TextView v_test;
 
 
 
