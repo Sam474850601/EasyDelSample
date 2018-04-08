@@ -11,40 +11,25 @@ import com.to8to.easydel_annotation.Adapter;
 public class MainActivity extends AppCompatActivity {
 
 
-    @Adapter(
-            holders = {
-                    "com.to8to.easydelsample.ContentHolder",
-            }
-    )
+    @Adapter(ContentHolder.class)
     AutoCreateAdapter contentAdapter;
 
 
-    @Adapter(
-            holders = {
-                    "com.to8to.easydelsample.ContentHolder",
-                    "com.to8to.easydelsample.ContentHolder1",
-                    "com.to8to.easydelsample.ContentHolder2"
+    @Adapter({
+                    ContentHolder.class,
+                    ContentHolder2.class,
+                    ContentHolder3.class,
                     //无限制holder数目
-            }
-    )
+    })
     AutoCreateAdapter contentAdapter2;
 
 
     //不想继承AutoCreateAdapter，如下使用
-    @Adapter(
-            holders = {
-                    "com.to8to.easydelsample.ContentHolder"
-            }
-    )
+    @Adapter(ContentHolder.class)
     CustomAutoCreateAdapter customAdapter;
 
 
-    @Adapter(
-            holders = {
-                    "com.to8to.easydelsample.ContentHolder"
-            },
-            extend =  "com.to8to.easydelsample.MyCustomAutoCreateAdapter"
-    )
+    @Adapter(value = ContentHolder.class, extendsClass =  MyCustomAutoCreateAdapter.class)
     CustomAutoCreateAdapter customAdapter2;
 
 

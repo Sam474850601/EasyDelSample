@@ -6,10 +6,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Created by same.li on 2018/4/3.
+ * Created by same.li on 2018/4/8.
  */
 @Retention(RetentionPolicy.CLASS)
-@Target(ElementType.METHOD)
-public @interface OnClick {
-    int value();
+@Target(ElementType.TYPE)
+public @interface ViewType {
+    int value() default 0;
 }

@@ -11,8 +11,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 @Target(ElementType.FIELD)
 public @interface Adapter {
-    String[] holders();
+    Class[] value();
     String className() default "";
-    String  extend() default "";
-    Class[] holderss();
+    Class  extendsClass() default Null.class;
 }
