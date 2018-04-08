@@ -4,7 +4,6 @@ import android.support.v7.widget.RecyclerView;
 import android.view.ViewGroup;
 
 import com.to8to.easydel.IAutoCreateAdapter;
-import com.to8to.easydel_annotation.ItemModel;
 
 import java.util.List;
 
@@ -31,7 +30,7 @@ public    class CustomAutoCreateAdapter extends RecyclerView.Adapter implements 
     }
 
     @Override
-    public ItemModel getItemData(int position) {
+    public Object getItemData(int position) {
         return null;
     }
 

@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * Created by same.li on 2018/4/8.
  */
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface ViewType {
     int value() default 0;

@@ -5,7 +5,6 @@ import android.view.View;
 
 import com.to8to.easydel_annotation.AdapterLayout;
 import com.to8to.easydel_annotation.IHolder;
-import com.to8to.easydel_annotation.ItemModel;
 import com.to8to.easydel_annotation.OnChildItemClick;
 import com.to8to.easydel_annotation.OnItemClickListener;
 import com.to8to.easydel_annotation.OnItemLongClickListener;

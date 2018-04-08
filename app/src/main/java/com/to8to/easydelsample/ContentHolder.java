@@ -7,9 +7,6 @@ import android.widget.TextView;
 import com.to8to.easydel_annotation.AdapterLayout;
 import com.to8to.easydel_annotation.Find;
 import com.to8to.easydel_annotation.IHolder;
-import com.to8to.easydel_annotation.OnChildItemClick;
-import com.to8to.easydel_annotation.OnItemClickListener;
-import com.to8to.easydel_annotation.OnItemLongClickListener;
 
 
 
@@ -31,7 +28,6 @@ public class ContentHolder extends RecyclerView.ViewHolder
 
     public ContentHolder(View itemView) {
         super(itemView);
-        itemView.setOnClickListener(new View.OnClickListener() {@Override public void onClick(View view) {}});
     }
 
 

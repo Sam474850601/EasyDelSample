@@ -3,9 +3,8 @@ package com.to8to.easydelsample;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 
-import com.to8to.easydel_annotation.IHolder;
 import com.to8to.easydel_annotation.AdapterLayout;
-import com.to8to.easydel_annotation.ItemModel;
+import com.to8to.easydel_annotation.IHolder;
 
 /**
  * Created by same.li on 2018/4/3.
@@ -20,8 +19,9 @@ public class ContentHolder3 extends RecyclerView.ViewHolder implements IHolder {
     }
 
 
+
     @Override
-    public void update(int postion, ItemModel itemData) {
+    public void update(int postion, Object itemData) {
 
     }
 }
