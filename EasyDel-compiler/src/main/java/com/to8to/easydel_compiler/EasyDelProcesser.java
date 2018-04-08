@@ -9,6 +9,7 @@ import com.squareup.javapoet.TypeSpec;
 import com.to8to.easydel_annotation.Adapter;
 import com.to8to.easydel_annotation.AdapterLayout;
 import com.to8to.easydel_annotation.Find;
+import com.to8to.easydel_annotation.HelperName;
 import com.to8to.easydel_annotation.Null;
 import com.to8to.easydel_annotation.OnChildItemClick;
 import com.to8to.easydel_annotation.ViewLayout;
@@ -28,6 +29,7 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
+import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
@@ -120,27 +122,37 @@ public class EasyDelProcesser extends AbstractProcessor {
             }
             info(" innerTypeName  :%s ", innerTypeName);
             TypeSpec apdater = null;
+            TypeSpec apdaterHelper = null;
             try {
                 String[] packagAnName = ClassUtil.getPackagAnName(parent);
-
-                apdater = TypeSpec.classBuilder(element.getEnclosingElement().getSimpleName() + "$$" + innerTypeName)
+                final String hostName = element.getEnclosingElement().getSimpleName().toString();
+                apdater = TypeSpec.classBuilder( hostName+ "$$" + innerTypeName)
                         .addModifiers(Modifier.PUBLIC)
                         .superclass(ClassName.get(packagAnName[0], packagAnName[1]))
                         //.addField(itemListDataField)
                         .addMethod(onBindViewHolder.build())
                         .addMethod(onCreateViewHolder.build())
                         .build();
+                apdaterHelper = TypeSpec.classBuilder(hostName+"$$"+ HelperName.NAME_SIMPLECLASS_ADAPTER_HELPER)
+                        .build();
+
+
+
             } catch (Exception e) {
                 info("Exception=%s", e.toString());
             }
             final String packagename = mElementUtils.getPackageOf(element).getQualifiedName().toString();
             info("packagename=%s", packagename);
             // JavaFileFixed javaFile = JavaFileFixed.builder(PACKAGE, typeSpec).addType(parent).build();
-            JavaFile javaFile = JavaFile.builder(packagename
-                    , apdater)
-                    .build();
+
             try {
-                javaFile.writeTo(mFiler);
+                JavaFile.builder(packagename
+                        , apdater)
+                        .build().writeTo(mFiler);
+
+                JavaFile.builder(packagename
+                        , apdaterHelper)
+                        .build().writeTo(mFiler);
             } catch (IOException e) {
                 e.printStackTrace();
             }
