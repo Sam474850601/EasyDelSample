@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
             },
             extend =  "com.to8to.easydelsample.MyCustomAutoCreateAdapter"
     )
-    IAutoCreateAdapter customAdapter2;
+    CustomAutoCreateAdapter customAdapter2;
 
 
 
