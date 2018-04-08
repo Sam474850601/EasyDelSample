@@ -9,21 +9,8 @@ import java.util.List;
  * Created by same.li on 2018/4/3.
  */
 
-public    class MyCustomAutoCreateAdapter implements IAutoCreateAdapter {
+public    class MyCustomAutoCreateAdapter extends CustomAutoCreateAdapter {
 
 
-    @Override
-    public ItemData getItemData(int position) {
-        return null;
-    }
 
-    @Override
-    public List<ItemData> getItemListData() {
-        return null;
-    }
-
-    @Override
-    public void setItemListData(List<ItemData> itemListData) {
-
-    }
 }

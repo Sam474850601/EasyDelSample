@@ -14,4 +14,5 @@ public @interface Adapter {
     String[] holders();
     String className() default "";
     String  extend() default "";
+    Class[] holderss();
 }

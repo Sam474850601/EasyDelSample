@@ -13,5 +13,5 @@ public class AndroidClass {
 
     public static final String PACKAGE_VIEW  ="android.view";
 
-
+    public static final String VIEW  ="android.view.View";
 }

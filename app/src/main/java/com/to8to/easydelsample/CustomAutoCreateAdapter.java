@@ -14,8 +14,10 @@ import java.util.List;
 
 public    class CustomAutoCreateAdapter extends RecyclerView.Adapter implements IAutoCreateAdapter {
 
+
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+
         return null;
     }
 

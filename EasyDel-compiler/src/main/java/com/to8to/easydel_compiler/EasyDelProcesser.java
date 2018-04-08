@@ -19,6 +19,7 @@ import com.to8to.easydel_annotation.ViewLayout;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +33,7 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
+import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.util.Elements;
@@ -84,7 +86,10 @@ public class EasyDelProcesser extends AbstractProcessor {
     private void _createCodeForRecyclerViewAdapter(RoundEnvironment roundEnv) {
         Set<? extends Element> elementsAnnotatedWith = roundEnv.getElementsAnnotatedWith(Adapter.class);
         for (Element element : elementsAnnotatedWith) {
+
             Adapter annotation = element.getAnnotation(Adapter.class);
+
+
             String adapterName = annotation.className();
             final String filedClassName = element.getSimpleName().toString();
             if (null == adapterName || adapterName.isEmpty()) {
@@ -147,7 +152,7 @@ public class EasyDelProcesser extends AbstractProcessor {
             if (null != annotatedWith && layoutSize > 0) {
                 for (Element layoutElement : annotatedWith) {
 
-                    String layoutHostName = layoutElement.toString();
+                    final  String layoutHostName = layoutElement.toString();
 
                     if (holder.equals(layoutHostName)) {
                         i++;
@@ -156,8 +161,8 @@ public class EasyDelProcesser extends AbstractProcessor {
                         final int temp = i - 1;
                         info("temp=%d", temp);
                         AdapterLayout adapterLayoutAnn = layoutElement.getAnnotation(AdapterLayout.class);
-                        int id = adapterLayoutAnn.id();
-                        int viewType = adapterLayoutAnn.viewType();
+                        final int layoutId = adapterLayoutAnn.id();
+                        final int viewType = adapterLayoutAnn.viewType();
                         if (temp == 0) {
                             onCreateViewHolder.beginControlFlow("if($L == viewType)", viewType);
 
@@ -168,27 +173,61 @@ public class EasyDelProcesser extends AbstractProcessor {
                             onBindViewHolder.beginControlFlow("else if (holder instanceof $L)", holder);
                         }
 
-                        onCreateViewHolder.addStatement("android.view.View layoutView = android.view.LayoutInflater.from(parent.getContext()).inflate($L, parent, false)", id);
+                        onCreateViewHolder.addStatement("final android.view.View layoutView = android.view.LayoutInflater.from(parent.getContext()).inflate($L, parent, false)", layoutId);
 
-                        onCreateViewHolder.addStatement("$L holder =new $L(layoutView)", holder, holder);
+                        onCreateViewHolder.addStatement("final $L holder =new $L(layoutView)", holder, holder);
 
+
+                        onBindViewHolder.addStatement("final $L tHolder = ($L)holder ", holder, holder);
+                        onBindViewHolder.addStatement("tHolder.update(position, getItemData(position))");
+
+                        HashMap<Integer, Integer > viewIds  = new HashMap<>();
                         List<? extends Element> allMembers = mElementUtils.getAllMembers((TypeElement) layoutElement);
                         if (null != allMembers) {
-                            for (Element allMember : allMembers) {
-                                final Find findAnn = allMember.getAnnotation(Find.class);
+                            for (Element member : allMembers) {
+                                final Find findAnn = member.getAnnotation(Find.class);
+
                                 if (null != findAnn) {
-                                    final int value = findAnn.value();
-                                    final String findFieldName = allMember.getSimpleName().toString();
+                                    final int viewId = findAnn.value();
+                                    final String findFieldName = member.getSimpleName().toString();
                                     onCreateViewHolder.addStatement("holder.$L = ($L)layoutView.findViewById($L)", findFieldName
-                                            , ClassName.get(allMember.asType()).toString(), value);
+                                            , ClassName.get(member.asType()).toString(), viewId);
+                                    _addOnClickCodeById(onCreateViewHolder, findFieldName, viewId, allMembers);
+                                    viewIds.put(viewId, viewId);
+                                }
+
+                                final OnClick onClick = member.getAnnotation(OnClick.class);
+                               if(null != onClick)
+                               {
+                                   final int  viewId = onClick.value();
+                                   Integer integer = viewIds.get(viewId);
+                                   if(null == integer)
+                                   {
+                                       _addOnClickCode(onCreateViewHolder, viewId, member);
+                                   }
+                               }
+
+                                String memberName   = member.toString();
+
+                                if(memberName.contains("onItemClick")&&memberName.contains("int")&&memberName.contains(ItemData.class.getName().toString())&&memberName.contains(AndroidClass.VIEW))
+                                {
+
+                                   onBindViewHolder.addStatement("tHolder.itemView.setOnClickListener(new $L.OnClickListener(){@Override public void onClick($L view) {tHolder.onItemClick(position, getItemData(position), view);}})"
+                                 , AndroidClass.VIEW, AndroidClass.VIEW);
+                                }
+
+                                if(memberName.contains("onItemLongClick")&&memberName.contains("int")&&memberName.contains(ItemData.class.getName().toString())&&memberName.contains(AndroidClass.VIEW))
+                                {
+
+                                    onBindViewHolder.addStatement("tHolder.itemView.setOnLongClickListener(new $L.OnLongClickListener(){@Override public boolean onLongClick($L view) { return tHolder.onItemLongClick(position, getItemData(position), view);}})"
+                                            , AndroidClass.VIEW, AndroidClass.VIEW);
                                 }
                             }
                         }
                         onCreateViewHolder.addStatement("return holder");
                         onCreateViewHolder.endControlFlow();
 
-                        onBindViewHolder.addStatement("$L tHolder = ($L)holder ", holder, holder);
-                        onBindViewHolder.addStatement("tHolder.update(position, getItemData(position))");
+
                         onBindViewHolder.endControlFlow();
                     }
 
@@ -198,6 +237,31 @@ public class EasyDelProcesser extends AbstractProcessor {
         }
 
         onCreateViewHolder.addStatement("return null");
+
+    }
+
+    private void _addOnClickCode(MethodSpec.Builder onCreateViewHolder, int viewId, Element member) {
+        onCreateViewHolder.addStatement("layoutView.findViewById($L).setOnClickListener(new $L.OnClickListener(){@Override public void onClick($L view) {holder.$L(view);}})",
+                viewId,  AndroidClass.VIEW, AndroidClass.VIEW, member.getSimpleName());
+    }
+
+    private void _addOnClickCodeById(MethodSpec.Builder onCreateViewHolder,String findFieldName,  int id, List<? extends Element> allMembers) {
+
+        for (Element member : allMembers) {
+            final OnClick onClick = member.getAnnotation(OnClick.class);
+            if(null != onClick)
+            {
+                final int tId = onClick.value();
+                if(tId == id)
+                {
+                    onCreateViewHolder.addStatement("holder.$L.setOnClickListener(new $L.OnClickListener() {@Override public void onClick($L view) " +
+                                    "{holder.$L(view);}})"
+                            , findFieldName, AndroidClass.VIEW, AndroidClass.VIEW, member.getSimpleName().toString());
+                }
+            }
+        }
+
+
 
     }
 
@@ -224,7 +288,7 @@ public class EasyDelProcesser extends AbstractProcessor {
                         .addParameter(viewHolderClassName,
                                 "holder")
                         .addParameter(int.class,
-                                "position")
+                                "position", Modifier.FINAL)
                         .returns(TypeName.VOID);
     }
 

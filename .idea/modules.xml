@@ -3,10 +3,15 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/EasyDel/EasyDel.iml" filepath="$PROJECT_DIR$/EasyDel/EasyDel.iml" />
+      <module fileurl="file://F:\workspace\EasyDelSample2\EasyDel\EasyDel.iml" filepath="F:\workspace\EasyDelSample2\EasyDel\EasyDel.iml" />
       <module fileurl="file://$PROJECT_DIR$/EasyDel-annotation/EasyDel-annotation.iml" filepath="$PROJECT_DIR$/EasyDel-annotation/EasyDel-annotation.iml" />
+      <module fileurl="file://F:\workspace\EasyDelSample2\EasyDel-annotation\EasyDel-annotation.iml" filepath="F:\workspace\EasyDelSample2\EasyDel-annotation\EasyDel-annotation.iml" />
       <module fileurl="file://$PROJECT_DIR$/EasyDel-compiler/EasyDel-compiler.iml" filepath="$PROJECT_DIR$/EasyDel-compiler/EasyDel-compiler.iml" />
-      <module fileurl="file://$PROJECT_DIR$/EasyDelSample.iml" filepath="$PROJECT_DIR$/EasyDelSample.iml" />
+      <module fileurl="file://F:\workspace\EasyDelSample2\EasyDel-compiler\EasyDel-compiler.iml" filepath="F:\workspace\EasyDelSample2\EasyDel-compiler\EasyDel-compiler.iml" />
+      <module fileurl="file://F:\workspace\EasyDelSample2\EasyDelSample.iml" filepath="F:\workspace\EasyDelSample2\EasyDelSample.iml" />
+      <module fileurl="file://$PROJECT_DIR$/EasyDelSample2.iml" filepath="$PROJECT_DIR$/EasyDelSample2.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://F:\workspace\EasyDelSample2\app\app.iml" filepath="F:\workspace\EasyDelSample2\app\app.iml" />
     </modules>
   </component>
 </project>
