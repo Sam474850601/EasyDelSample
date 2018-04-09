@@ -8,6 +8,13 @@ import com.to8to.easydel_annotation.ViewType;
  */
 @ViewType(2)
 public class TestItemModel2{
+    private String message;
 
+    public String getMessage() {
+        return message;
+    }
 
+    public void setMessage(String message) {
+        this.message = message;
+    }
 }

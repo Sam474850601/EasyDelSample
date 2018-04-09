@@ -8,5 +8,13 @@ import com.to8to.easydel_annotation.ViewType;
  */
 @ViewType(3)
 public class TestItemModel3  {
+    private String value;
 
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
 }

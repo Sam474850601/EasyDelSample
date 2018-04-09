@@ -9,7 +9,13 @@ import com.to8to.easydel_annotation.ViewType;
 
 @ViewType
 public class TestItemModel {
-    public String title;
+    private String title;
 
+    public String getTitle() {
+        return title;
+    }
 
+    public void setTitle(String title) {
+        this.title = title;
+    }
 }

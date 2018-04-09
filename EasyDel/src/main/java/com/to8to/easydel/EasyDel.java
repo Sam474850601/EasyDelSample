@@ -17,7 +17,7 @@ public final class EasyDel {
         try {
             Class<?> helperClass = Class.forName(aClass.getName() + "$$"
                     + HelperName.NAME_SIMPLECLASS_ADAPTER_HELPER);
-            Method method = helperClass.getMethod(HelperName.NAME_METHOD_ADAPTER_INJECT);
+            Method method = helperClass.getMethod(HelperName.NAME_METHOD_ADAPTER_INJECT, new Class[]{object.getClass()});
             method.invoke(null, object);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();

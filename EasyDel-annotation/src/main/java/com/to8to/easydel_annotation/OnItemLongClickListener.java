@@ -5,5 +5,5 @@ package com.to8to.easydel_annotation;
  */
 
 public interface OnItemLongClickListener<T , V> {
-    boolean onItemLongClick(int position, T itemData, V parent);
+    boolean onItemLongClick(int position, T itemData, V view);
 }
