@@ -27,6 +27,7 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
@@ -83,80 +84,110 @@ public class EasyDelProcesser extends AbstractProcessor {
     }
 
     private void _createCodeForRecyclerViewAdapter(RoundEnvironment roundEnv) {
-        Set<? extends Element> elementsAnnotatedWith = roundEnv.getElementsAnnotatedWith(Adapter.class);
-        for (Element element : elementsAnnotatedWith) {
-            Adapter annotation = element.getAnnotation(Adapter.class);
-            String adapterName = annotation.className();
-            final String filedClassName = element.getSimpleName().toString();
-            if (null == adapterName || adapterName.isEmpty()) {
-                adapterName = filedClassName;
-            }
-            String parent = null;
-            try {
-                Class value = annotation.extendsClass();
-                if (!Null.class.isAssignableFrom(value)) {
-                    parent = value.getName();
-                }
+        Set<? extends Element> rootElements = roundEnv.getRootElements();
+        for (Element element : rootElements) {
 
-            } catch (MirroredTypeException mte) {
-                TypeMirror typeMirror = mte.getTypeMirror();
-                DeclaredType classTypeMirror = (DeclaredType) typeMirror;
-                TypeElement classTypeElement = (TypeElement) classTypeMirror.asElement();
-                final String className = classTypeElement.getQualifiedName().toString();
-                if (!Null.class.getName().equals(className)) {
-                    parent = className;
-                }
-            }
-            VariableElement typeElement = (VariableElement) element;
-            if (null == parent || parent.isEmpty()) {
-                parent = ClassName.get(typeElement.asType()).toString();
-            }
-            info("parent=%s", parent);
-            ClassName viewHolderClassName = ClassName.get(AndroidClass.RecyclerView, AndroidClass.ViewHolder);
-            MethodSpec.Builder onBindViewHolder = _onBindViewHolder(viewHolderClassName);
-            MethodSpec.Builder onCreateViewHolder = _onCreateViewHolder(viewHolderClassName);
-            _addCodeForOnBindViewHolder(annotation, roundEnv, onCreateViewHolder, onBindViewHolder);
-            String innerTypeName = adapterName.substring(0, 1).toUpperCase();
-            if (adapterName.length() > 1) {
-                innerTypeName += adapterName.substring(1, adapterName.length());
-            }
-            info(" innerTypeName  :%s ", innerTypeName);
-            TypeSpec apdater = null;
-            TypeSpec apdaterHelper = null;
-            try {
-                String[] packagAnName = ClassUtil.getPackagAnName(parent);
-                final String hostName = element.getEnclosingElement().getSimpleName().toString();
-                apdater = TypeSpec.classBuilder( hostName+ "$$" + innerTypeName)
-                        .addModifiers(Modifier.PUBLIC)
-                        .superclass(ClassName.get(packagAnName[0], packagAnName[1]))
-                        //.addField(itemListDataField)
-                        .addMethod(onBindViewHolder.build())
-                        .addMethod(onCreateViewHolder.build())
-                        .build();
-                apdaterHelper = TypeSpec.classBuilder(hostName+"$$"+ HelperName.NAME_SIMPLECLASS_ADAPTER_HELPER)
-                        .build();
-
-
-
-            } catch (Exception e) {
-                info("Exception=%s", e.toString());
-            }
             final String packagename = mElementUtils.getPackageOf(element).getQualifiedName().toString();
-            info("packagename=%s", packagename);
-            // JavaFileFixed javaFile = JavaFileFixed.builder(PACKAGE, typeSpec).addType(parent).build();
+            final String hostName = element.getSimpleName().toString();
+            List<? extends Element> allMembers = mElementUtils.getAllMembers((TypeElement) element);
+            if (null == allMembers)
+                continue;
+            final String hostclassName = ClassName.get(element.asType()).toString();
+            final String hostInstancename = "host";
+            MethodSpec.Builder adpaterInject = _adpaterInject(hostclassName, hostInstancename);
+            info("meber:%s",element.asType().toString());
+            boolean hasAdapter =false;
+            for (Element member : allMembers) {
 
-            try {
-                JavaFile.builder(packagename
-                        , apdater)
-                        .build().writeTo(mFiler);
+                Adapter annotation = member.getAnnotation(Adapter.class);
+                if (null == annotation)
+                    continue;
+                hasAdapter = true;
+                String adapterName = annotation.className();
 
-                JavaFile.builder(packagename
-                        , apdaterHelper)
-                        .build().writeTo(mFiler);
-            } catch (IOException e) {
-                e.printStackTrace();
+                final String fieldClassName = member.getSimpleName().toString();
+                if (null == adapterName || adapterName.isEmpty()) {
+                    adapterName = fieldClassName;
+                }
+                String parent = null;
+                try {
+                    Class value = annotation.extendsClass();
+                    if (!Null.class.isAssignableFrom(value)) {
+                        parent = value.getName();
+                    }
+
+                } catch (MirroredTypeException mte) {
+                    TypeMirror typeMirror = mte.getTypeMirror();
+                    DeclaredType classTypeMirror = (DeclaredType) typeMirror;
+                    TypeElement classTypeElement = (TypeElement) classTypeMirror.asElement();
+                    final String className = classTypeElement.getQualifiedName().toString();
+                    if (!Null.class.getName().equals(className)) {
+                        parent = className;
+                    }
+                }
+                VariableElement typeElement = (VariableElement) member;
+
+                if (null == parent || parent.isEmpty()) {
+                    parent = ClassName.get(typeElement.asType()).toString();
+                }
+                info("parent=%s", parent);
+                ClassName viewHolderClassName = ClassName.get(AndroidClass.RecyclerView, AndroidClass.ViewHolder);
+                MethodSpec.Builder onBindViewHolder = _onBindViewHolder(viewHolderClassName);
+                MethodSpec.Builder onCreateViewHolder = _onCreateViewHolder(viewHolderClassName);
+
+
+                _addCodeForOnBindViewHolder(annotation, roundEnv, onCreateViewHolder, onBindViewHolder);
+                String innerTypeName = adapterName.substring(0, 1).toUpperCase();
+                if (adapterName.length() > 1) {
+                    innerTypeName += adapterName.substring(1, adapterName.length());
+                }
+
+                info(" innerTypeName  :%s ", innerTypeName);
+                TypeSpec apdater = null;
+                try {
+                    String[] packagAnName = ClassUtil.getPackagAnName(parent);
+
+                    final String newAdapterClassName = hostName + "$$" + innerTypeName;
+                    adpaterInject.addStatement("host.$L= new $L()", fieldClassName, packagename + "." + newAdapterClassName);
+                    apdater = TypeSpec.classBuilder(newAdapterClassName)
+                            .addModifiers(Modifier.PUBLIC)
+                            .superclass(ClassName.get(packagAnName[0], packagAnName[1]))
+                            //.addField(itemListDataField)
+                            .addMethod(onBindViewHolder.build())
+                            .addMethod(onCreateViewHolder.build())
+                            .build();
+
+                } catch (Exception e) {
+                    info("Exception=%s", e.toString());
+                }
+
+                info("packagename=%s", packagename);
+                // JavaFileFixed javaFile = JavaFileFixed.builder(PACKAGE, typeSpec).addType(parent).build();
+
+                try {
+                    JavaFile.builder(packagename
+                            , apdater)
+                            .build().writeTo(mFiler);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
 
+            if(hasAdapter)
+            {
+                TypeSpec apdaterHelper = TypeSpec.classBuilder(hostName + "$$" + HelperName.NAME_SIMPLECLASS_ADAPTER_HELPER)
+                        .addMethod(adpaterInject.build())
+                        .build();
+                try
+                {
+                    JavaFile.builder(packagename
+                            , apdaterHelper)
+                            .build().writeTo(mFiler);
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -304,14 +335,11 @@ public class EasyDelProcesser extends AbstractProcessor {
     }
 
     private void _addOnClickCode(String viewModel, MethodSpec.Builder onBindViewHolder, int viewId, Element member) {
-        if(null  == viewModel)
-        {
+        if (null == viewModel) {
             onBindViewHolder.addStatement("tHolder.itemView.findViewById($L).setOnClickListener(new $L.OnClickListener()" +
                             "{@Override public void onClick($L view) {tHolder.$L(position,  getItemData(position), view);}})",
                     viewId, AndroidClass.VIEW, AndroidClass.VIEW, member.getSimpleName());
-        }
-        else
-        {
+        } else {
             onBindViewHolder.addStatement("tHolder.itemView.findViewById($L).setOnClickListener(new $L.OnClickListener()" +
                             "{@Override public void onClick($L view) {tHolder.$L(position,  ($L)getItemData(position), view);}})",
                     viewId, AndroidClass.VIEW, AndroidClass.VIEW, member.getSimpleName(), viewModel);
@@ -326,16 +354,13 @@ public class EasyDelProcesser extends AbstractProcessor {
             if (null != onChildItemClick) {
                 final int tId = onChildItemClick.value();
                 if (tId == id) {
-                    if(null == viewModel)
-                    {
+                    if (null == viewModel) {
                         onBindViewHolder.addStatement("tHolder.$L.setOnClickListener(new $L.OnClickListener() {@Override public void onClick($L view) " +
-                                "{tHolder.$L(position,  getItemData(position), view);}})" ,
+                                        "{tHolder.$L(position,  getItemData(position), view);}})",
                                 findFieldName, AndroidClass.VIEW, AndroidClass.VIEW, member.getSimpleName().toString());
-                    }
-                    else
-                    {
+                    } else {
                         onBindViewHolder.addStatement("tHolder.$L.setOnClickListener(new $L.OnClickListener() {@Override public void onClick($L view) " +
-                                "{tHolder.$L(position,  ($L)getItemData(position), view);}})"
+                                        "{tHolder.$L(position,  ($L)getItemData(position), view);}})"
                                 , findFieldName, AndroidClass.VIEW, AndroidClass.VIEW, member.getSimpleName().toString(), viewModel);
                     }
                 }
@@ -358,6 +383,18 @@ public class EasyDelProcesser extends AbstractProcessor {
                         .addParameter(int.class,
                                 "viewType")
                         .returns(viewHolderClassName);
+    }
+
+    private MethodSpec.Builder _adpaterInject(String hostClassName, String hostInstanceName) {
+        String[] packagAnName = ClassUtil.getPackagAnName(hostClassName);
+
+        return
+                MethodSpec.methodBuilder(HelperName.NAME_METHOD_ADAPTER_INJECT)
+                        .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                        .addParameter(ClassName.get(packagAnName[0], packagAnName[1]), hostInstanceName)
+                        .returns(TypeName.VOID);
+
+
     }
 
     private MethodSpec.Builder _onBindViewHolder(ClassName viewHolderClassName) {
