@@ -11,7 +11,7 @@ import java.lang.reflect.Method;
 
 public final class EasyDel {
 
-    public static void injectAdapter(Object object)
+    public static void inject(Object object)
     {
         Class<?> aClass = object.getClass();
         try {
