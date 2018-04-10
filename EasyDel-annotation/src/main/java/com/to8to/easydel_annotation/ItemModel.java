@@ -10,6 +10,6 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface ViewType {
-    int value() default 0;
+public @interface ItemModel {
+    int viewType() default 0;
 }

@@ -2,7 +2,7 @@ package com.to8to.easydel;
 
 import android.support.v7.widget.RecyclerView;
 
-import com.to8to.easydel_annotation.ViewType;
+import com.to8to.easydel_annotation.ItemModel;
 
 import java.util.List;
 
@@ -42,12 +42,12 @@ public  abstract   class AutoCreateAdapter extends RecyclerView.Adapter implemen
     @Override
     public int getItemViewType(int position) {
         Class<?> aClass = itemListData.get(position).getClass();
-        ViewType annotation =aClass.getAnnotation(ViewType.class);
+        ItemModel annotation =aClass.getAnnotation(ItemModel.class);
         if(null == annotation)
         {
-            throw new RuntimeException(aClass.getName()+"need  support ViewType annotation");
+            throw new RuntimeException(aClass.getName()+"need  support ItemModel annotation");
         }
-        return annotation.value();
+        return annotation.viewType();
     }
 
 

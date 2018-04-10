@@ -95,7 +95,6 @@ public class EasyDelProcesser extends AbstractProcessor {
             final String hostclassName = ClassName.get(element.asType()).toString();
             final String hostInstancename = "host";
             MethodSpec.Builder adpaterInject = _adpaterInject(hostclassName, hostInstancename);
-            info("meber:%s",element.asType().toString());
             boolean hasAdapter =false;
             for (Element member : allMembers) {
 
@@ -130,7 +129,6 @@ public class EasyDelProcesser extends AbstractProcessor {
                 if (null == parent || parent.isEmpty()) {
                     parent = ClassName.get(typeElement.asType()).toString();
                 }
-                info("parent=%s", parent);
                 ClassName viewHolderClassName = ClassName.get(AndroidClass.RecyclerView, AndroidClass.ViewHolder);
                 MethodSpec.Builder onBindViewHolder = _onBindViewHolder(viewHolderClassName);
                 MethodSpec.Builder onCreateViewHolder = _onCreateViewHolder(viewHolderClassName);
@@ -142,12 +140,13 @@ public class EasyDelProcesser extends AbstractProcessor {
                     innerTypeName += adapterName.substring(1, adapterName.length());
                 }
 
-                info(" innerTypeName  :%s ", innerTypeName);
+
+
                 TypeSpec apdater = null;
                 try {
                     String[] packagAnName = ClassUtil.getPackagAnName(parent);
-
                     final String newAdapterClassName = hostName + "$$" + innerTypeName;
+                    System.out.println("adapter:"+packagename+"."+newAdapterClassName);
                     adpaterInject.addStatement("host.$L= new $L()", fieldClassName, packagename + "." + newAdapterClassName);
                     apdater = TypeSpec.classBuilder(newAdapterClassName)
                             .addModifiers(Modifier.PUBLIC)
@@ -160,8 +159,6 @@ public class EasyDelProcesser extends AbstractProcessor {
                 } catch (Exception e) {
                     info("Exception=%s", e.toString());
                 }
-
-                info("packagename=%s", packagename);
                 // JavaFileFixed javaFile = JavaFileFixed.builder(PACKAGE, typeSpec).addType(parent).build();
 
                 try {
@@ -231,7 +228,6 @@ public class EasyDelProcesser extends AbstractProcessor {
                 i++;
                 //layoutHashMap.put(holder, layoutElement.getAnnotation(AdapterLayout.class));
                 final int temp = i - 1;
-                info("temp=%d", temp);
                 AdapterLayout adapterLayoutAnn = layoutElement.getAnnotation(AdapterLayout.class);
                 final int layoutId = adapterLayoutAnn.id();
                 final int viewType = adapterLayoutAnn.viewType();
