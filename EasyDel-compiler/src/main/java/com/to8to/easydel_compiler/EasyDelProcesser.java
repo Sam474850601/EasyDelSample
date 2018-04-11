@@ -8,16 +8,19 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.to8to.easydel_annotation.Adapter;
 import com.to8to.easydel_annotation.AdapterLayout;
+import com.to8to.easydel_annotation.ContainerType;
 import com.to8to.easydel_annotation.Find;
 import com.to8to.easydel_annotation.HelperName;
 import com.to8to.easydel_annotation.Null;
 import com.to8to.easydel_annotation.OnChildItemClick;
+import com.to8to.easydel_annotation.OnClick;
 import com.to8to.easydel_annotation.ViewLayout;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -27,10 +30,8 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
-import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
@@ -66,6 +67,8 @@ public class EasyDelProcesser extends AbstractProcessor {
         types.add(AdapterLayout.class.getCanonicalName());
         types.add(Adapter.class.getCanonicalName());
         types.add(ViewLayout.class.getCanonicalName());
+        types.add(OnClick.class.getCanonicalName());
+        types.add(ContainerType.class.getCanonicalName());
         return types;
     }
 
@@ -85,6 +88,7 @@ public class EasyDelProcesser extends AbstractProcessor {
 
     private void _createCodeForRecyclerViewAdapter(RoundEnvironment roundEnv) {
         Set<? extends Element> rootElements = roundEnv.getRootElements();
+
         for (Element element : rootElements) {
 
             final String packagename = mElementUtils.getPackageOf(element).getQualifiedName().toString();
@@ -94,91 +98,142 @@ public class EasyDelProcesser extends AbstractProcessor {
                 continue;
             final String hostclassName = ClassName.get(element.asType()).toString();
             final String hostInstancename = "host";
-            MethodSpec.Builder adpaterInject = _adpaterInject(hostclassName, hostInstancename);
-            boolean hasAdapter =false;
+            MethodSpec.Builder inject= _inject(hostclassName, hostInstancename);
+            boolean hasInjectAnnotation =false;
+            final   HashMap<Integer, String> findFields= new HashMap<>();
+            final   HashMap<Integer, String> onClikeMethods= new HashMap<>();
+            ContainerType containerType =   element.getAnnotation(ContainerType.class);
+            String findViewInstance  = null;
+            int type = ContainerType.TYPE_ADAPTER;
+            if(null != containerType)
+            {
+                type = containerType.value();
+            }
+            if(ContainerType.TYPE_ACTIVITY == type)
+            {
+                findViewInstance = "host";
+            }
+            else if(ContainerType.TYPE_FRAGMENT == type)
+            {
+                findViewInstance = "host.getView()";
+            }
+
             for (Element member : allMembers) {
-
-                Adapter annotation = member.getAnnotation(Adapter.class);
-                if (null == annotation)
-                    continue;
-                hasAdapter = true;
-                String adapterName = annotation.className();
-
                 final String fieldClassName = member.getSimpleName().toString();
-                if (null == adapterName || adapterName.isEmpty()) {
-                    adapterName = fieldClassName;
-                }
-                String parent = null;
-                try {
-                    Class value = annotation.extendsClass();
-                    if (!Null.class.isAssignableFrom(value)) {
-                        parent = value.getName();
+                Adapter annotation = member.getAnnotation(Adapter.class);
+                if(null != annotation)
+                {
+                    hasInjectAnnotation = true;
+                    String adapterName = annotation.className();
+
+
+                    if (null == adapterName || adapterName.isEmpty()) {
+                        adapterName = fieldClassName;
+                    }
+                    String parent = null;
+                    try {
+                        Class value = annotation.extendsClass();
+                        if (!Null.class.isAssignableFrom(value)) {
+                            parent = value.getName();
+                        }
+
+                    } catch (MirroredTypeException mte) {
+                        TypeMirror typeMirror = mte.getTypeMirror();
+                        DeclaredType classTypeMirror = (DeclaredType) typeMirror;
+                        TypeElement classTypeElement = (TypeElement) classTypeMirror.asElement();
+                        final String className = classTypeElement.getQualifiedName().toString();
+                        if (!Null.class.getName().equals(className)) {
+                            parent = className;
+                        }
+                    }
+                    VariableElement typeElement = (VariableElement) member;
+
+                    if (null == parent || parent.isEmpty()) {
+                        parent = ClassName.get(typeElement.asType()).toString();
+                    }
+                    ClassName viewHolderClassName = ClassName.get(AndroidClass.RecyclerView, AndroidClass.ViewHolder);
+                    MethodSpec.Builder onBindViewHolder = _onBindViewHolder(viewHolderClassName);
+                    MethodSpec.Builder onCreateViewHolder = _onCreateViewHolder(viewHolderClassName);
+
+
+                    _addCodeForOnBindViewHolder(annotation, roundEnv, onCreateViewHolder, onBindViewHolder);
+                    String innerTypeName = adapterName.substring(0, 1).toUpperCase();
+                    if (adapterName.length() > 1) {
+                        innerTypeName += adapterName.substring(1, adapterName.length());
                     }
 
-                } catch (MirroredTypeException mte) {
-                    TypeMirror typeMirror = mte.getTypeMirror();
-                    DeclaredType classTypeMirror = (DeclaredType) typeMirror;
-                    TypeElement classTypeElement = (TypeElement) classTypeMirror.asElement();
-                    final String className = classTypeElement.getQualifiedName().toString();
-                    if (!Null.class.getName().equals(className)) {
-                        parent = className;
+
+
+                    TypeSpec apdater = null;
+                    try {
+                        String[] packagAnName = ClassUtil.getPackagAnName(parent);
+                        final String newAdapterClassName = hostName + "$$" + innerTypeName;
+                        System.out.println("adapter:"+packagename+"."+newAdapterClassName);
+                        inject.addStatement("host.$L= new $L()", fieldClassName, packagename + "." + newAdapterClassName);
+                        apdater = TypeSpec.classBuilder(newAdapterClassName)
+                                .addModifiers(Modifier.PUBLIC)
+                                .superclass(ClassName.get(packagAnName[0], packagAnName[1]))
+                                //.addField(itemListDataField)
+                                .addMethod(onBindViewHolder.build())
+                                .addMethod(onCreateViewHolder.build())
+                                .build();
+
+                    } catch (Exception e) {
+                        info("Exception=%s", e.toString());
+                    }
+                    // JavaFileFixed javaFile = JavaFileFixed.builder(PACKAGE, typeSpec).addType(parent).build();
+
+                    try {
+                        JavaFile.builder(packagename
+                                , apdater)
+                                .build().writeTo(mFiler);
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 }
-                VariableElement typeElement = (VariableElement) member;
 
-                if (null == parent || parent.isEmpty()) {
-                    parent = ClassName.get(typeElement.asType()).toString();
-                }
-                ClassName viewHolderClassName = ClassName.get(AndroidClass.RecyclerView, AndroidClass.ViewHolder);
-                MethodSpec.Builder onBindViewHolder = _onBindViewHolder(viewHolderClassName);
-                MethodSpec.Builder onCreateViewHolder = _onCreateViewHolder(viewHolderClassName);
-
-
-                _addCodeForOnBindViewHolder(annotation, roundEnv, onCreateViewHolder, onBindViewHolder);
-                String innerTypeName = adapterName.substring(0, 1).toUpperCase();
-                if (adapterName.length() > 1) {
-                    innerTypeName += adapterName.substring(1, adapterName.length());
-                }
-
-
-
-                TypeSpec apdater = null;
-                try {
-                    String[] packagAnName = ClassUtil.getPackagAnName(parent);
-                    final String newAdapterClassName = hostName + "$$" + innerTypeName;
-                    System.out.println("adapter:"+packagename+"."+newAdapterClassName);
-                    adpaterInject.addStatement("host.$L= new $L()", fieldClassName, packagename + "." + newAdapterClassName);
-                    apdater = TypeSpec.classBuilder(newAdapterClassName)
-                            .addModifiers(Modifier.PUBLIC)
-                            .superclass(ClassName.get(packagAnName[0], packagAnName[1]))
-                            //.addField(itemListDataField)
-                            .addMethod(onBindViewHolder.build())
-                            .addMethod(onCreateViewHolder.build())
-                            .build();
-
-                } catch (Exception e) {
-                    info("Exception=%s", e.toString());
-                }
-                // JavaFileFixed javaFile = JavaFileFixed.builder(PACKAGE, typeSpec).addType(parent).build();
-
-                try {
-                    JavaFile.builder(packagename
-                            , apdater)
-                            .build().writeTo(mFiler);
-                } catch (IOException e) {
-                    e.printStackTrace();
+               Find find = member.getAnnotation(Find.class);
+               if(null != find && null != findViewInstance)
+               {
+                   final int viewId = find.value();
+                   findFields.put(viewId,fieldClassName);
+                   hasInjectAnnotation = true;
+                   inject.addStatement("host.$L = ($L)$L.findViewById($L)", fieldClassName,member.asType().toString(),
+                           findViewInstance, find.value() );
+               }
+                OnClick onClick = member.getAnnotation(OnClick.class);
+                if(null != onClick && null != findViewInstance)
+                {
+                    hasInjectAnnotation = true;
+                    onClikeMethods.put(onClick.value(), member.getSimpleName().toString());
                 }
             }
 
-            if(hasAdapter)
+            Set<Map.Entry<Integer, String>> entries = onClikeMethods.entrySet();
+            for (Map.Entry<Integer, String> entry : entries) {
+                final   String fieldName = findFields.get(entry.getKey());
+                final String method = entry.getValue();
+                if(null == fieldName)
+                {
+                    inject.addStatement("$L.findViewById($L).setOnClickListener(new android.view.View.OnClickListener() {@Override public void onClick(android.view.View view) {host.$L(view);}})",
+                            findViewInstance ,entry.getKey(), method );
+                }
+                else
+                {
+
+                    inject.addStatement("host.$L.setOnClickListener(new android.view.View.OnClickListener() {@Override public void onClick(android.view.View view) {host.$L(view);}})", fieldName ,method );
+                }
+            }
+
+            if(hasInjectAnnotation)
             {
-                TypeSpec apdaterHelper = TypeSpec.classBuilder(hostName + "$$" + HelperName.NAME_SIMPLECLASS_ADAPTER_HELPER)
-                        .addMethod(adpaterInject.build())
+                TypeSpec injectHelper = TypeSpec.classBuilder(hostName + "$$" + HelperName.NAME_SIMPLECLASS_ADAPTER_HELPER)
+                        .addMethod(inject.build())
                         .build();
                 try
                 {
                     JavaFile.builder(packagename
-                            , apdaterHelper)
+                            , injectHelper)
                             .build().writeTo(mFiler);
                 }
                 catch (IOException e) {
@@ -268,7 +323,8 @@ public class EasyDelProcesser extends AbstractProcessor {
                 } else {
                     onBindViewHolder.addStatement("tHolder.update(position, ($L)getItemData(position))", viewModel);
                 }
-                HashMap<Integer, Integer> viewIds = new HashMap<>();
+                final HashMap<Integer, String> viewIds = new HashMap<>();
+               final  HashMap<Integer, String > onChildClicks = new HashMap<>();
                 List<? extends Element> allMembers = mElementUtils.getAllMembers(layoutElement);
                 if (null != allMembers) {
                     for (Element member : allMembers) {
@@ -279,17 +335,13 @@ public class EasyDelProcesser extends AbstractProcessor {
                             final String findFieldName = member.getSimpleName().toString();
                             onCreateViewHolder.addStatement("holder.$L = ($L)layoutView.findViewById($L)", findFieldName
                                     , ClassName.get(member.asType()).toString(), viewId);
-                            _addOnClickCodeById(viewModel, onBindViewHolder, findFieldName, viewId, allMembers);
-                            viewIds.put(viewId, viewId);
+                            viewIds.put(viewId, findFieldName);
                         }
 
                         final OnChildItemClick onChildItemClick = member.getAnnotation(OnChildItemClick.class);
                         if (null != onChildItemClick) {
                             final int viewId = onChildItemClick.value();
-                            Integer integer = viewIds.get(viewId);
-                            if (null == integer) {
-                                _addOnClickCode(viewModel, onBindViewHolder, viewId, member);
-                            }
+                            onChildClicks.put(viewId, member.getSimpleName().toString());
                         }
 
                         String memberName = member.toString();
@@ -315,6 +367,11 @@ public class EasyDelProcesser extends AbstractProcessor {
 
                         }
                     }
+                    Set<Map.Entry<Integer, String>> entries = onChildClicks.entrySet();
+                    for (Map.Entry<Integer, String> entry : entries) {
+                        int viewId = entry.getKey();
+                        _addOnClickCode(viewModel, onBindViewHolder, viewId, viewIds.get(viewId), entry.getValue());
+                    }
                 }
                 onCreateViewHolder.addStatement("return holder");
                 onCreateViewHolder.endControlFlow();
@@ -330,15 +387,35 @@ public class EasyDelProcesser extends AbstractProcessor {
 
     }
 
-    private void _addOnClickCode(String viewModel, MethodSpec.Builder onBindViewHolder, int viewId, Element member) {
+    private void _addOnClickCode(String viewModel, MethodSpec.Builder onBindViewHolder, Integer viewId, String fieldName,  String method ) {
         if (null == viewModel) {
-            onBindViewHolder.addStatement("tHolder.itemView.findViewById($L).setOnClickListener(new $L.OnClickListener()" +
-                            "{@Override public void onClick($L view) {tHolder.$L(position,  getItemData(position), view);}})",
-                    viewId, AndroidClass.VIEW, AndroidClass.VIEW, member.getSimpleName());
+            if(null == fieldName)
+            {
+                onBindViewHolder.addStatement("tHolder.itemView.findViewById($L).setOnClickListener(new $L.OnClickListener()" +
+                                "{@Override public void onClick($L view) {tHolder.$L(position,  getItemData(position), view);}})",
+                        viewId, AndroidClass.VIEW, AndroidClass.VIEW, method);
+            }
+            else
+            {
+                onBindViewHolder.addStatement("tHolder.$L.setOnClickListener(new $L.OnClickListener()" +
+                                "{@Override public void onClick($L view) {tHolder.$L(position,  getItemData(position), view);}})",
+                        fieldName, AndroidClass.VIEW, AndroidClass.VIEW, method);
+            }
+
         } else {
-            onBindViewHolder.addStatement("tHolder.itemView.findViewById($L).setOnClickListener(new $L.OnClickListener()" +
-                            "{@Override public void onClick($L view) {tHolder.$L(position,  ($L)getItemData(position), view);}})",
-                    viewId, AndroidClass.VIEW, AndroidClass.VIEW, member.getSimpleName(), viewModel);
+            if(null == fieldName)
+            {
+                onBindViewHolder.addStatement("tHolder.itemView.findViewById($L).setOnClickListener(new $L.OnClickListener()" +
+                                "{@Override public void onClick($L view) {tHolder.$L(position,  ($L)getItemData(position), view);}})",
+                        viewId, AndroidClass.VIEW, AndroidClass.VIEW, method, viewModel);
+            }
+            else
+            {
+                onBindViewHolder.addStatement("tHolder.$L.setOnClickListener(new $L.OnClickListener()" +
+                                "{@Override public void onClick($L view) {tHolder.$L(position,  ($L)getItemData(position), view);}})",
+                        fieldName, AndroidClass.VIEW, AndroidClass.VIEW, method, viewModel);
+            }
+
         }
 
     }
@@ -381,13 +458,13 @@ public class EasyDelProcesser extends AbstractProcessor {
                         .returns(viewHolderClassName);
     }
 
-    private MethodSpec.Builder _adpaterInject(String hostClassName, String hostInstanceName) {
+    private MethodSpec.Builder _inject(String hostClassName, String hostInstanceName) {
         String[] packagAnName = ClassUtil.getPackagAnName(hostClassName);
 
         return
-                MethodSpec.methodBuilder(HelperName.NAME_METHOD_ADAPTER_INJECT)
+                MethodSpec.methodBuilder(HelperName.NAME_METHOD_INJECT)
                         .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                        .addParameter(ClassName.get(packagAnName[0], packagAnName[1]), hostInstanceName)
+                        .addParameter(ClassName.get(packagAnName[0], packagAnName[1]), hostInstanceName, Modifier.FINAL)
                         .returns(TypeName.VOID);
 
 

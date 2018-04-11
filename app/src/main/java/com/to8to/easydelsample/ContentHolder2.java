@@ -5,6 +5,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.to8to.easydel_annotation.AdapterLayout;
+import com.to8to.easydel_annotation.Find;
 import com.to8to.easydel_annotation.IHolder;
 import com.to8to.easydel_annotation.OnChildItemClick;
 import com.to8to.easydel_annotation.OnItemClickListener;
@@ -23,12 +24,24 @@ public class ContentHolder2 extends RecyclerView.ViewHolder implements IHolder<T
         super(itemView);
     }
 
-
     @OnChildItemClick(R.id.iv_right)
-    public void onLeftImageViewClike(int position, TestItemModel2 itemData, View view)
+    public void onLeftImageViewClike(int position, TestItemModel2 itemData, View view) {
+        Toast.makeText(view.getContext(), "TestItemModel2 message:"+itemData.getMessage(), Toast.LENGTH_SHORT).show();
+    }
+
+    @OnChildItemClick(R.id.tv_title)
+    public void tv_title(int position, TestItemModel2 itemData, View view)
     {
         Toast.makeText(view.getContext(), "TestItemModel2 message:"+itemData.getMessage(), Toast.LENGTH_SHORT).show();
     }
+
+    @Find(R.id.iv_right)
+    View testdd;
+
+    @Find(R.id.tv_title)
+    View dsfadsfasdf;
+
+
 
 
     @Override

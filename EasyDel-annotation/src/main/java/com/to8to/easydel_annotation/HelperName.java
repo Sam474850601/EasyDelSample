@@ -6,6 +6,6 @@ package com.to8to.easydel_annotation;
 
 public class HelperName {
     public static final String NAME_SIMPLECLASS_ADAPTER_HELPER = "Helper";
-    public static final String NAME_METHOD_ADAPTER_INJECT = "inject";
+    public static final String NAME_METHOD_INJECT = "inject";
 
 }
