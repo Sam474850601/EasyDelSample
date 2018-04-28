@@ -1,5 +1,5 @@
 apply plugin: 'com.android.library'
-
+apply plugin: 'easydel.res_creator'
 android {
     compileSdkVersion 26
 
