@@ -3,6 +3,7 @@ package com.to8to.easydelsample;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
+import android.widget.TextView;
 
 import com.to8to.easydel_annotation.ContainerType;
 import com.to8to.easydel_annotation.Find;

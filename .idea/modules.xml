@@ -7,7 +7,9 @@
       <module fileurl="file://$PROJECT_DIR$/EasyDel-compiler/EasyDel-compiler.iml" filepath="$PROJECT_DIR$/EasyDel-compiler/EasyDel-compiler.iml" />
       <module fileurl="file://F:\workspace\EasyDelSample2\EasyDelSample.iml" filepath="F:\workspace\EasyDelSample2\EasyDelSample.iml" />
       <module fileurl="file://$PROJECT_DIR$/EasyDelSample2.iml" filepath="$PROJECT_DIR$/EasyDelSample2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Easydel-gradle-plugin/Easydel-gradle-plugin.iml" filepath="$PROJECT_DIR$/Easydel-gradle-plugin/Easydel-gradle-plugin.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/testmoudle/testmoudle.iml" filepath="$PROJECT_DIR$/testmoudle/testmoudle.iml" />
     </modules>
   </component>
 </project>
