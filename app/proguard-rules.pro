@@ -19,3 +19,13 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+-keep class com.to8to.easydel_annotation.** { *; }
+
+-keep class **Helper{ *; }
+-keepclasseswithmembernames class * {
+    @com.to8to.easydel_annotation.* <fields>;
+}
+-keepclasseswithmembernames class * {
+    @com.to8to.easydel_annotation.* <methods>;
+}

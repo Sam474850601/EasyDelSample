@@ -39,6 +39,7 @@ public class ContentHolder extends RecyclerView.ViewHolder
     @Override
     public void update(int postion, TestItemModel data) {
         tvTitle.setText(data.getTitle());
+
     }
 
 
