@@ -1,2 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.testmoudle" />
+    package="com.example.testmoudle" >
+    <application>
+        <activity
+            android:name=".TestMoudleActivity"
+
+            />
+
+
+    </application>
+
+</manifest>

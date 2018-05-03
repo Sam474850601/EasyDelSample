@@ -18,6 +18,7 @@ import com.to8to.easydel_annotation.ViewLayout;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -80,14 +81,71 @@ public class EasyDelProcesser extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnv) {
-
         _createCodeForRecyclerViewAdapter(roundEnv);
 
         return true;
     }
 
+    private final HashMap<String , Element> rList = new HashMap<>();
+
+
+
+    private String getViewIdKey(int id)
+    {
+        Set<Map.Entry<String, Element>> entries = rList.entrySet();
+        for (Map.Entry<String, Element> entry : entries) {
+            final String rClassName = entry.getKey();
+            final String pk = rClassName.substring(0, rClassName.lastIndexOf("."));
+            TypeElement typeElement = mElementUtils.getTypeElement(pk + ".MR.id");
+            if(null == typeElement)
+            {
+                typeElement = mElementUtils.getTypeElement(rClassName+".id");
+            }
+
+            if(null == typeElement)
+                continue;
+            List<? extends Element> allMembers = mElementUtils.getAllMembers(typeElement);
+            for (Element member : allMembers) {
+                if (member.getKind().isField()) {
+
+                    String fieldName = member.toString();
+
+                    if(member instanceof  VariableElement)
+                    {
+                        VariableElement variableElement = (VariableElement) member;
+                        Object constantValue = variableElement.getConstantValue();
+
+                        if (null != constantValue) {
+                            if(id == (int)constantValue)
+                            {
+
+                                String format = String.format("host.getResources().getIdentifier(\"%s\", \"id\", @package)",
+                                        fieldName);
+                                info("fieldName=%s, value is %s,  format is %s", fieldName, ""+constantValue, format);
+                                return format;
+                            }
+                        }
+
+                    }
+
+                }
+            }
+
+        }
+        info("format is %s", id+"");
+        return id+"";
+    }
+
     private void _createCodeForRecyclerViewAdapter(RoundEnvironment roundEnv) {
         Set<? extends Element> rootElements = roundEnv.getRootElements();
+
+        for (Element resElement : rootElements) {
+            String s = resElement.toString();
+            if(!s.startsWith("android") && s.endsWith(".R"))
+            {
+                rList.put(s, resElement);
+            }
+        }
 
         for (Element element : rootElements) {
 
@@ -103,6 +161,7 @@ public class EasyDelProcesser extends AbstractProcessor {
             final   HashMap<Integer, String> findFields= new HashMap<>();
             final   HashMap<Integer, String> onClikeMethods= new HashMap<>();
             ContainerType containerType =   element.getAnnotation(ContainerType.class);
+            String packageName = "";
             String findViewInstance  = null;
             int type = ContainerType.TYPE_ADAPTER;
             if(null != containerType)
@@ -112,10 +171,12 @@ public class EasyDelProcesser extends AbstractProcessor {
             if(ContainerType.TYPE_ACTIVITY == type)
             {
                 findViewInstance = "host";
+                packageName = "host.getPackageName()";
             }
             else if(ContainerType.TYPE_FRAGMENT == type)
             {
                 findViewInstance = "host.getView()";
+                packageName = "host.getContext().getPackageName()";
             }
 
             for (Element member : allMembers) {
@@ -199,7 +260,8 @@ public class EasyDelProcesser extends AbstractProcessor {
                    findFields.put(viewId,fieldClassName);
                    hasInjectAnnotation = true;
                    inject.addStatement("host.$L = ($L)$L.findViewById($L)", fieldClassName,member.asType().toString(),
-                           findViewInstance, find.value() );
+                           findViewInstance,
+                           getViewIdKey(find.value()).replace("@package", packageName));
                }
                 OnClick onClick = member.getAnnotation(OnClick.class);
                 if(null != onClick && null != findViewInstance)
@@ -216,7 +278,10 @@ public class EasyDelProcesser extends AbstractProcessor {
                 if(null == fieldName)
                 {
                     inject.addStatement("$L.findViewById($L).setOnClickListener(new android.view.View.OnClickListener() {@Override public void onClick(android.view.View view) {host.$L(view);}})",
-                            findViewInstance ,entry.getKey(), method );
+                            findViewInstance ,
+
+                            getViewIdKey(entry.getKey()).replace("@package", packageName)
+                            , method );
                 }
                 else
                 {
@@ -241,6 +306,15 @@ public class EasyDelProcesser extends AbstractProcessor {
                 }
             }
         }
+    }
+
+
+
+    private String  getId(int id)
+    {
+
+
+        return "";
     }
 
     private void _addCodeForOnBindViewHolder(Adapter annotation, RoundEnvironment roundEnv,
@@ -334,7 +408,8 @@ public class EasyDelProcesser extends AbstractProcessor {
                             final int viewId = findAnn.value();
                             final String findFieldName = member.getSimpleName().toString();
                             onCreateViewHolder.addStatement("holder.$L = ($L)layoutView.findViewById($L)", findFieldName
-                                    , ClassName.get(member.asType()).toString(), viewId);
+                                    , ClassName.get(member.asType()).toString(),  getViewIdKey(viewId).replace("@package",
+                                            "parent.getContext().getPackageName()").replace("host.", "parent.getContext()."));
                             viewIds.put(viewId, findFieldName);
                         }
 
@@ -388,12 +463,19 @@ public class EasyDelProcesser extends AbstractProcessor {
     }
 
     private void _addOnClickCode(String viewModel, MethodSpec.Builder onBindViewHolder, Integer viewId, String fieldName,  String method ) {
+
         if (null == viewModel) {
+
+
             if(null == fieldName)
             {
+
+
                 onBindViewHolder.addStatement("tHolder.itemView.findViewById($L).setOnClickListener(new $L.OnClickListener()" +
                                 "{@Override public void onClick($L view) {tHolder.$L(position,  getItemData(position), view);}})",
-                        viewId, AndroidClass.VIEW, AndroidClass.VIEW, method);
+                        getViewIdKey(viewId).replace("@package",
+                                "holder.itemView.getContext().getPackageName()").replace("host.", "holder.itemView.getContext()."),
+                        AndroidClass.VIEW, AndroidClass.VIEW, method);
             }
             else
             {
@@ -407,7 +489,9 @@ public class EasyDelProcesser extends AbstractProcessor {
             {
                 onBindViewHolder.addStatement("tHolder.itemView.findViewById($L).setOnClickListener(new $L.OnClickListener()" +
                                 "{@Override public void onClick($L view) {tHolder.$L(position,  ($L)getItemData(position), view);}})",
-                        viewId, AndroidClass.VIEW, AndroidClass.VIEW, method, viewModel);
+                        getViewIdKey(viewId).replace("@package",
+                                "holder.itemView.getContext().getPackageName()").replace("host.", "holder.itemView.getContext().")
+                        , AndroidClass.VIEW, AndroidClass.VIEW, method, viewModel);
             }
             else
             {

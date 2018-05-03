@@ -30,19 +30,19 @@ import static javax.lang.model.element.Modifier.STATIC;
 public final class FinalRClassBuilder {
   private static final String SUPPORT_ANNOTATION_PACKAGE = "android.support.annotation";
   private static final String[] SUPPORTED_TYPES = {
-      "anim", "array", "attr", "bool", "color", "dimen", "drawable", "id", "integer", "layout", "menu", "plurals",
-      "string", "style", "styleable"
+          "anim", "array", "attr", "bool", "color", "dimen", "drawable", "id", "integer", "layout", "menu", "plurals",
+          "string", "style", "styleable"
   };
 
   private FinalRClassBuilder() { }
 
   public static void brewJava(File rFile, File outputDir, String packageName, String className)
-      throws Exception {
+          throws Exception {
     CompilationUnit compilationUnit = JavaParser.parse(rFile);
     TypeDeclaration resourceClass = compilationUnit.getTypes().get(0);
 
     TypeSpec.Builder result =
-        TypeSpec.classBuilder(className).addModifiers(PUBLIC).addModifiers(FINAL);
+            TypeSpec.classBuilder(className).addModifiers(PUBLIC).addModifiers(FINAL);
 
     for (Node node : resourceClass.getChildNodes()) {
       if (node instanceof ClassOrInterfaceDeclaration) {
@@ -51,14 +51,14 @@ public final class FinalRClassBuilder {
     }
 
     JavaFile finalR = JavaFile.builder(packageName, result.build())
-        .addFileComment("Generated code from Butter Knife gradle plugin. Do not modify!")
-        .build();
+            .addFileComment("Generated code from Butter Knife gradle plugin. Do not modify!")
+            .build();
 
     finalR.writeTo(outputDir);
   }
 
   private static void addResourceType(List<String> supportedTypes, TypeSpec.Builder result,
-      ClassOrInterfaceDeclaration node) {
+                                      ClassOrInterfaceDeclaration node) {
     if (!supportedTypes.contains(node.getNameAsString())) {
       return;
     }
@@ -84,16 +84,16 @@ public final class FinalRClassBuilder {
   private static boolean isInt(FieldDeclaration field) {
     Type type = field.getCommonType();
     return type instanceof PrimitiveType
-        && ((PrimitiveType) type).getType() == PrimitiveType.Primitive.INT;
+            && ((PrimitiveType) type).getType() == PrimitiveType.Primitive.INT;
   }
 
   private static void addResourceField(TypeSpec.Builder resourceType, VariableDeclarator variable,
-      ClassName annotation) {
+                                       ClassName annotation) {
     String fieldName = variable.getNameAsString();
     String fieldValue = variable.getInitializer().map(Node::toString).orElse(null);
     FieldSpec.Builder fieldSpecBuilder = FieldSpec.builder(int.class, fieldName)
-        .addModifiers(PUBLIC, STATIC, FINAL)
-        .initializer(fieldValue);
+            .addModifiers(PUBLIC, STATIC, FINAL)
+            .initializer(fieldValue);
 
     if (annotation != null) {
       fieldSpecBuilder.addAnnotation(annotation);

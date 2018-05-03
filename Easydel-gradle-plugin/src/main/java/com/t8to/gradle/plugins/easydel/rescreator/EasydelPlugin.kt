@@ -22,27 +22,27 @@ import kotlin.reflect.KClass
 class  EasydelPlugin : Plugin<Project>
 {
     override fun apply(project: Project) {
-    project.plugins.all {
-        when (it) {
-            is FeaturePlugin -> {
-                project.extensions[FeatureExtension::class].run {
-                    configureR2Generation(project, featureVariants)
-                    configureR2Generation(project, libraryVariants)
+        project.plugins.all {
+            when (it) {
+                is FeaturePlugin -> {
+                    project.extensions[FeatureExtension::class].run {
+                        configureR2Generation(project, featureVariants)
+                        configureR2Generation(project, libraryVariants)
+                    }
                 }
-            }
-            is LibraryPlugin -> {
-                project.extensions[LibraryExtension::class].run {
-                    configureR2Generation(project, libraryVariants)
+                is LibraryPlugin -> {
+                    project.extensions[LibraryExtension::class].run {
+                        configureR2Generation(project, libraryVariants)
+                    }
                 }
-            }
-            is AppPlugin -> {
-                project.extensions[AppExtension::class].run {
-                    configureR2Generation(project, applicationVariants)
+                is AppPlugin -> {
+                    project.extensions[AppExtension::class].run {
+                        configureR2Generation(project, applicationVariants)
+                    }
                 }
             }
         }
     }
-}
 
     // Parse the variant's main manifest file in order to get the package id which is used to create
     // R.java in the right place.
@@ -61,7 +61,7 @@ class  EasydelPlugin : Plugin<Project>
             val outputDir = project.buildDir.resolve(
                     "generated/source/r2/${variant.dirName}")
 
-            val task = project.tasks.create("generate${variant.name.capitalize()}T")
+            val task = project.tasks.create("generate${variant.name.capitalize()}MR")
             task.outputs.dir(outputDir)
             variant.registerJavaGeneratingTask(task, outputDir)
 
@@ -81,7 +81,7 @@ class  EasydelPlugin : Plugin<Project>
                         inputs.file(rFile)
 
                         doLast {
-                            FinalRClassBuilder.brewJava(rFile, outputDir, rPackage, "T")
+                            FinalRClassBuilder.brewJava(rFile, outputDir, rPackage, "MR")
                         }
                     }
                 }
