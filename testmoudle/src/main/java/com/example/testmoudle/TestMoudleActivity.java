@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -12,14 +13,14 @@ import com.to8to.easydel.EasyDel;
 import com.to8to.easydel_annotation.ContainerType;
 import com.to8to.easydel_annotation.Find;
 import com.to8to.easydel_annotation.OnClick;
+import com.to8to.easydel_annotation.ViewLayout;
 
 /**
  * Created by same.li on 2018/5/3.
  */
 @ContainerType(ContainerType.TYPE_ACTIVITY)
-public class TestMoudleActivity extends Activity {
-
-
+@ViewLayout(MR.layout.layout)
+public class TestMoudleActivity extends BaseActivity {
 
     @Find(MR.id.tv_hao)
     TextView tvTitle;
@@ -33,12 +34,10 @@ public class TestMoudleActivity extends Activity {
 
 
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.layout);
-        EasyDel.inject(this);
-
-        tvTitle.setText("呵呵打");
+    protected void init() {
+        tvTitle.setText("测试华士大夫阿萨德发");
 
     }
+
+
 }

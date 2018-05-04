@@ -40,6 +40,7 @@ import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.MirroredTypesException;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
+import javax.swing.text.View;
 import javax.tools.Diagnostic;
 
 /**
@@ -89,17 +90,44 @@ public class EasyDelProcesser extends AbstractProcessor {
     private final HashMap<String , Element> rList = new HashMap<>();
 
 
+    //R.id.xx
+    public static final int IDTYPE_FIELD =  1;
 
-    private String getViewIdKey(int id)
+    //R.layout.xx
+    public static final int IDTYPE_LAYOUT =  2;
+
+
+
+
+    private String getViewIdKey(int id, int idType)
     {
         Set<Map.Entry<String, Element>> entries = rList.entrySet();
         for (Map.Entry<String, Element> entry : entries) {
             final String rClassName = entry.getKey();
             final String pk = rClassName.substring(0, rClassName.lastIndexOf("."));
-            TypeElement typeElement = mElementUtils.getTypeElement(pk + ".MR.id");
+            String idTypestr = null;
+            switch (idType)
+            {
+                case IDTYPE_FIELD:
+                {
+                    idTypestr = "id";
+                }
+                break ;
+
+                case IDTYPE_LAYOUT:
+                {
+                    idTypestr = "layout";
+                }
+                break ;
+
+                default:
+                    idTypestr = "id";
+            }
+
+            TypeElement typeElement = mElementUtils.getTypeElement(pk + ".MR."+idTypestr);
             if(null == typeElement)
             {
-                typeElement = mElementUtils.getTypeElement(rClassName+".id");
+                typeElement = mElementUtils.getTypeElement(rClassName+"."+idTypestr);
             }
 
             if(null == typeElement)
@@ -118,10 +146,8 @@ public class EasyDelProcesser extends AbstractProcessor {
                         if (null != constantValue) {
                             if(id == (int)constantValue)
                             {
-
-                                String format = String.format("host.getResources().getIdentifier(\"%s\", \"id\", @package)",
+                                String format = String.format("@host.getResources().getIdentifier(\"%s\", \""+idTypestr+"\", @package)",
                                         fieldName);
-                                info("fieldName=%s, value is %s,  format is %s", fieldName, ""+constantValue, format);
                                 return format;
                             }
                         }
@@ -132,7 +158,6 @@ public class EasyDelProcesser extends AbstractProcessor {
             }
 
         }
-        info("format is %s", id+"");
         return id+"";
     }
 
@@ -157,12 +182,16 @@ public class EasyDelProcesser extends AbstractProcessor {
             final String hostclassName = ClassName.get(element.asType()).toString();
             final String hostInstancename = "host";
             MethodSpec.Builder inject= _inject(hostclassName, hostInstancename);
+
+            MethodSpec.Builder loadLayoutView = null;
+
             boolean hasInjectAnnotation =false;
             final   HashMap<Integer, String> findFields= new HashMap<>();
             final   HashMap<Integer, String> onClikeMethods= new HashMap<>();
             ContainerType containerType =   element.getAnnotation(ContainerType.class);
             String packageName = "";
             String findViewInstance  = null;
+            String getResourceInstance  = null;
             int type = ContainerType.TYPE_ADAPTER;
             if(null != containerType)
             {
@@ -171,13 +200,19 @@ public class EasyDelProcesser extends AbstractProcessor {
             if(ContainerType.TYPE_ACTIVITY == type)
             {
                 findViewInstance = "host";
+                getResourceInstance = "host";
                 packageName = "host.getPackageName()";
             }
             else if(ContainerType.TYPE_FRAGMENT == type)
             {
                 findViewInstance = "host.getView()";
+                getResourceInstance = findViewInstance+".getContext()";
                 packageName = "host.getContext().getPackageName()";
             }
+
+
+
+
 
             for (Element member : allMembers) {
                 final String fieldClassName = member.getSimpleName().toString();
@@ -261,7 +296,10 @@ public class EasyDelProcesser extends AbstractProcessor {
                    hasInjectAnnotation = true;
                    inject.addStatement("host.$L = ($L)$L.findViewById($L)", fieldClassName,member.asType().toString(),
                            findViewInstance,
-                           getViewIdKey(find.value()).replace("@package", packageName));
+                           getViewIdKey(find.value(), IDTYPE_FIELD)
+                                   .replace("@package", packageName)
+                                   .replace("@host", getResourceInstance)
+                                    );
                }
                 OnClick onClick = member.getAnnotation(OnClick.class);
                 if(null != onClick && null != findViewInstance)
@@ -280,7 +318,9 @@ public class EasyDelProcesser extends AbstractProcessor {
                     inject.addStatement("$L.findViewById($L).setOnClickListener(new android.view.View.OnClickListener() {@Override public void onClick(android.view.View view) {host.$L(view);}})",
                             findViewInstance ,
 
-                            getViewIdKey(entry.getKey()).replace("@package", packageName)
+                            getViewIdKey(entry.getKey(),IDTYPE_FIELD)
+                                    .replace("@host", getResourceInstance)
+                                    .replace("@package", packageName)
                             , method );
                 }
                 else
@@ -290,15 +330,36 @@ public class EasyDelProcesser extends AbstractProcessor {
                 }
             }
 
+            ViewLayout viewLayout = element.getAnnotation(ViewLayout.class);
+
+            if(null != viewLayout)
+            {
+                loadLayoutView = _loadLayoutView(hostclassName, hostInstancename);
+                String viewIdKey = getViewIdKey(viewLayout.value(), IDTYPE_LAYOUT);
+                viewIdKey = viewIdKey
+                        .replace("@host", getResourceInstance)
+                        .replace("@package", packageName);
+
+                loadLayoutView.addStatement("return android.view.LayoutInflater.from($L).inflate($L, null, false)",
+                         getResourceInstance,
+                         viewIdKey
+                );
+               hasInjectAnnotation = true;
+            }
+
             if(hasInjectAnnotation)
             {
-                TypeSpec injectHelper = TypeSpec.classBuilder(hostName + "$$" + HelperName.NAME_SIMPLECLASS_ADAPTER_HELPER)
-                        .addMethod(inject.build())
-                        .build();
+                TypeSpec.Builder injectHelper = TypeSpec.classBuilder(hostName + "$$" + HelperName.NAME_SIMPLECLASS_ADAPTER_HELPER)
+                        .addMethod(inject.build());
+
+                if (null != loadLayoutView) {
+                    injectHelper.addMethod(loadLayoutView.build());
+                }
+
                 try
                 {
                     JavaFile.builder(packagename
-                            , injectHelper)
+                            , injectHelper.build())
                             .build().writeTo(mFiler);
                 }
                 catch (IOException e) {
@@ -386,7 +447,12 @@ public class EasyDelProcesser extends AbstractProcessor {
                     onBindViewHolder.beginControlFlow("else if (holder instanceof $L)", holder);
                 }
 
-                onCreateViewHolder.addStatement("final android.view.View layoutView = android.view.LayoutInflater.from(parent.getContext()).inflate($L, parent, false)", layoutId);
+                onCreateViewHolder.addStatement("final android.view.View layoutView = android.view.LayoutInflater.from(parent.getContext()).inflate($L, parent, false)",
+                        getViewIdKey(layoutId, IDTYPE_LAYOUT)
+                                .replace("@host", "parent.getContext()")
+                                .replace("@package",
+                                "parent.getContext().getPackageName()")
+                                );
 
                 onCreateViewHolder.addStatement("final $L holder =new $L(layoutView)", holder, holder);
 
@@ -408,8 +474,14 @@ public class EasyDelProcesser extends AbstractProcessor {
                             final int viewId = findAnn.value();
                             final String findFieldName = member.getSimpleName().toString();
                             onCreateViewHolder.addStatement("holder.$L = ($L)layoutView.findViewById($L)", findFieldName
-                                    , ClassName.get(member.asType()).toString(),  getViewIdKey(viewId).replace("@package",
-                                            "parent.getContext().getPackageName()").replace("host.", "parent.getContext()."));
+                                    , ClassName.get(member.asType()).toString(),
+                                             getViewIdKey(viewId, IDTYPE_FIELD)
+                                            .replace("@host", "parent.getContext()")
+                                            .replace("@package", "parent.getContext().getPackageName()"
+                                            )
+
+
+                            );
                             viewIds.put(viewId, findFieldName);
                         }
 
@@ -473,8 +545,10 @@ public class EasyDelProcesser extends AbstractProcessor {
 
                 onBindViewHolder.addStatement("tHolder.itemView.findViewById($L).setOnClickListener(new $L.OnClickListener()" +
                                 "{@Override public void onClick($L view) {tHolder.$L(position,  getItemData(position), view);}})",
-                        getViewIdKey(viewId).replace("@package",
-                                "holder.itemView.getContext().getPackageName()").replace("host.", "holder.itemView.getContext()."),
+                        getViewIdKey(viewId, IDTYPE_FIELD)
+                                .replace("@package",
+                                "holder.itemView.getContext().getPackageName()")
+                                .replace("@host", "holder.itemView.getContext()"),
                         AndroidClass.VIEW, AndroidClass.VIEW, method);
             }
             else
@@ -489,8 +563,10 @@ public class EasyDelProcesser extends AbstractProcessor {
             {
                 onBindViewHolder.addStatement("tHolder.itemView.findViewById($L).setOnClickListener(new $L.OnClickListener()" +
                                 "{@Override public void onClick($L view) {tHolder.$L(position,  ($L)getItemData(position), view);}})",
-                        getViewIdKey(viewId).replace("@package",
-                                "holder.itemView.getContext().getPackageName()").replace("host.", "holder.itemView.getContext().")
+                        getViewIdKey(viewId, IDTYPE_FIELD)
+                                .replace("@package",
+                                "holder.itemView.getContext().getPackageName()")
+                                .replace("@host", "holder.itemView.getContext()")
                         , AndroidClass.VIEW, AndroidClass.VIEW, method, viewModel);
             }
             else
@@ -550,6 +626,18 @@ public class EasyDelProcesser extends AbstractProcessor {
                         .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                         .addParameter(ClassName.get(packagAnName[0], packagAnName[1]), hostInstanceName, Modifier.FINAL)
                         .returns(TypeName.VOID);
+
+
+    }
+
+    private MethodSpec.Builder _loadLayoutView(String hostClassName, String hostInstanceName) {
+        String[] packagAnName = ClassUtil.getPackagAnName(hostClassName);
+
+        return
+                MethodSpec.methodBuilder(HelperName.NAME_METHOD_LOAD_LAYOUTVIEW)
+                        .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                        .addParameter(ClassName.get(packagAnName[0], packagAnName[1]), hostInstanceName, Modifier.FINAL)
+                        .returns(ClassName.get(AndroidClass.PACKAGE_VIEW,"View"));
 
 
     }
